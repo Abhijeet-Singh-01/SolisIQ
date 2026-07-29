@@ -61,9 +61,9 @@ function LoginPage({ onLogin, switchToSignup, switchToAdmin }) {
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card auth-grid">
-        <aside className="auth-side">
+    <div className="auth-shell login-shell">
+      <div className="auth-card auth-grid login-card">
+        <aside className="auth-side login-side">
           <span className="auth-side-badge">AI Solar Advisor</span>
           <h2>Welcome back</h2>
           <p>Sign in to access your solar forecasts, savings insights, and energy optimization tools.</p>
@@ -79,7 +79,7 @@ function LoginPage({ onLogin, switchToSignup, switchToAdmin }) {
           </div>
         </aside>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form login-form" onSubmit={handleSubmit}>
           <div className="auth-heading">
             <h2>Sign in</h2>
             <p>Enter your email and password to continue.</p>
