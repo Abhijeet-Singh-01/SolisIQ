@@ -69,9 +69,9 @@ function SignupPage({ onSignup, switchToLogin }) {
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card auth-grid">
-        <aside className="auth-side">
+    <div className="auth-shell signup-shell">
+      <div className="auth-card auth-grid signup-card">
+        <aside className="auth-side signup-side">
           <span className="auth-side-badge">AI Solar Advisor</span>
           <h2>Build your solar future</h2>
           <p>Create an account to track solar savings, carbon impact, and rooftop potential.</p>
@@ -87,7 +87,7 @@ function SignupPage({ onSignup, switchToLogin }) {
           </div>
         </aside>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form signup-form" onSubmit={handleSubmit}>
           <div className="auth-heading">
             <h2>Create account</h2>
             <p>Start your solar journey with a secure free account.</p>
