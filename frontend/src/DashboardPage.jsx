@@ -62,7 +62,7 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container dashboard-page-container">
       <div className="topbar">
         <div>
           <div className="topbar-label">Dashboard</div>

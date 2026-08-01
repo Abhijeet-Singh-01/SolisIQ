@@ -79,7 +79,7 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container admin-app-container">
       <div className="topbar">
         <div>
           <div className="topbar-label">Administration</div>
@@ -130,7 +130,7 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
           </div>
 
           {loading ? (
-            <p className="admin-table-message">Loading users...</p>
+            <p className="admin-table-message loading-state">Loading users...</p>
           ) : (
             <div className="admin-table-wrap">
               <table className="admin-users-table">

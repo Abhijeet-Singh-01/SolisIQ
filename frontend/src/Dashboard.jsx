@@ -14,7 +14,7 @@ import {
 
 function Dashboard({ results }) {
   if (!results) {
-    return <p>Fill the form to see your solar analysis.</p>;
+    return <p className="dashboard-empty-state">Fill the form to see your solar analysis.</p>;
   }
 
   const { prediction, roi, carbon } = results;
@@ -145,11 +145,11 @@ function Dashboard({ results }) {
           <h3>Monthly Savings</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={monthlySavingsData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid stroke="transparent" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="savings" fill="#10b981" name="Monthly Savings" />
+              <Bar dataKey="savings" fill="#00d9a3" name="Monthly Savings" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -158,11 +158,11 @@ function Dashboard({ results }) {
           <h3>Yearly Savings (25 years)</h3>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={yearlySavings}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid stroke="transparent" />
               <XAxis dataKey="year" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="savings" stroke="#2563eb" strokeWidth={2} />
+              <Line type="monotone" dataKey="savings" stroke="#f5a623" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -173,12 +173,12 @@ function Dashboard({ results }) {
           <h3>Before vs After</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={beforeAfterData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid stroke="transparent" />
               <XAxis dataKey="period" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="withoutSolar" fill="#64748b" name="Without Solar" />
-              <Bar dataKey="withSolar" fill="#16a34a" name="With Solar" />
+              <Bar dataKey="withoutSolar" fill="#60718a" name="Without Solar" />
+              <Bar dataKey="withSolar" fill="#00d9a3" name="With Solar" />
             </BarChart>
           </ResponsiveContainer>
         </div>

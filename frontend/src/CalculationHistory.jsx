@@ -38,7 +38,7 @@ function CalculationHistory({ history, loading, error, onDelete }) {
         <p>Saved calculations for your account.</p>
       </div>
 
-      {loading && <p>Loading history...</p>}
+      {loading && <p className="loading-state">Loading history...</p>}
       {error && <p className="error-message">{error}</p>}
       {downloadError && <p className="error-message">{downloadError}</p>}
 
