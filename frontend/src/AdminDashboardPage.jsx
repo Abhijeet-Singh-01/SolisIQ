@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -11,11 +12,39 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
   const [error, setError] = useState('');
   const [deletingUserId, setDeletingUserId] = useState(null);
 
-  const authConfig = useMemo(() => ({
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }), [token]);
+  const authConfig = useMemo(() => {
+    const config = { headers: {} };
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  }, [token]);
+
+  const getApiErrorMessage = (err) => {
+    if (!err?.response) {
+      return err?.message || 'Unable to connect. Please check your network and try again.';
+    }
+
+    const status = err.response.status;
+    const backendMessage = err.response.data?.error || err.response.data?.message;
+
+    if (status === 400) {
+      return backendMessage || 'Could not load the requested admin data. Please try again.';
+    }
+    if (status === 401 || status === 403) {
+      return backendMessage || 'Your session has expired. Please sign in again.';
+    }
+    if (status >= 500) {
+      return backendMessage || 'Server error while loading admin data. Try again in a few moments.';
+    }
+
+    return backendMessage || 'Something went wrong. Please refresh the page.';
+  };
+
+  const handleUnauthorized = () => {
+    onLogout();
+    navigate('/admin/login');
+  };
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -30,7 +59,11 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
       setStats(statsResponse.data);
       setUsers(usersResponse.data.users || []);
     } catch (err) {
-      setError(err?.response?.data?.error || 'Could not load the admin dashboard.');
+      const message = getApiErrorMessage(err);
+      setError(message);
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        handleUnauthorized();
+      }
     } finally {
       setLoading(false);
     }
@@ -72,7 +105,11 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
           : currentStats
       ));
     } catch (err) {
-      setError(err?.response?.data?.error || 'Could not delete this user.');
+      const message = getApiErrorMessage(err);
+      setError(message);
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        handleUnauthorized();
+      }
     } finally {
       setDeletingUserId(null);
     }
@@ -126,6 +163,7 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search username or email"
               aria-label="Search users by username or email"
+              disabled={loading}
             />
           </div>
 
