@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import mysql.connector
 
-# This file creates the Flask API for the AI Solar Advisor project.
+# This file creates the Flask API for the SolisIQ project.
 # If you know JavaScript, think of this as the backend server that receives
 # requests from the React frontend and sends back useful results.
 
@@ -103,7 +103,9 @@ def get_local_weather_fallback():
         reader = csv.DictReader(csv_file)
         for row in reader:
             row_count += 1
-            totals["temperature"] += (float(row["temperature_2m_max"]) + float(row["temperature_2m_min"])) / 2
+            totals["temperature"] += (
+                float(row["temperature_2m_max"]) + float(row["temperature_2m_min"])
+            ) / 2
             totals["cloudcover"] += float(row["cloudcover_mean"])
             totals["humidity"] += float(row["relative_humidity_2m_mean"])
             totals["windspeed"] += float(row["windspeed_10m_max"])
@@ -115,10 +117,127 @@ def get_local_weather_fallback():
     return {key: round(value / row_count, 2) for key, value in totals.items()}
 
 
+SYSTEM_COST_PER_KW = 60000
+
+STATE_SUBSIDIES = {
+    "Delhi": {"percent": 40, "scheme": "Delhi Rooftop Solar Subsidy"},
+    "Maharashtra": {"percent": 20, "scheme": "Maharashtra Solar Support"},
+    "Gujarat": {"percent": 40, "scheme": "Gujarat Solar Initiative"},
+    "Tamil Nadu": {"percent": 25, "scheme": "Tamil Nadu Rooftop Subsidy"},
+    "Karnataka": {"percent": 20, "scheme": "Karnataka Green Energy Subsidy"},
+    "Uttar Pradesh": {"percent": 15, "scheme": "UP Solar Promotion"},
+    "Rajasthan": {"percent": 30, "scheme": "Rajasthan Solar Initiative"},
+    "Punjab": {"percent": 20, "scheme": "Punjab Solar Subsidy"},
+}
+
+
+def get_state_subsidy(state_name):
+    subsidy_info = STATE_SUBSIDIES.get(state_name)
+    if subsidy_info:
+        return subsidy_info
+
+    return {
+        "percent": 10,
+        "scheme": "National rooftop solar subsidy",
+    }
+
+
+MONTH_NAMES = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+
+
+def get_average_monthly_weather():
+    fallback_path = os.path.join(os.path.dirname(__file__), "data", "weather_data.csv")
+    monthly_aggregate = {
+        month: {
+            "temperature_2m_max": 0.0,
+            "temperature_2m_min": 0.0,
+            "shortwave_radiation_sum": 0.0,
+            "cloudcover_mean": 0.0,
+            "relative_humidity_2m_mean": 0.0,
+            "windspeed_10m_max": 0.0,
+            "count": 0,
+        }
+        for month in range(1, 13)
+    }
+
+    with open(fallback_path, newline="", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+        for row in reader:
+            raw_date = (row.get("date") or "").strip()
+            if not raw_date:
+                continue
+
+            try:
+                month = datetime.strptime(raw_date, "%Y-%m-%d").month
+            except ValueError:
+                continue
+
+            try:
+                monthly_aggregate[month]["temperature_2m_max"] += float(
+                    row["temperature_2m_max"]
+                )
+                monthly_aggregate[month]["temperature_2m_min"] += float(
+                    row["temperature_2m_min"]
+                )
+                monthly_aggregate[month]["shortwave_radiation_sum"] += float(
+                    row["shortwave_radiation_sum"]
+                )
+                monthly_aggregate[month]["cloudcover_mean"] += float(
+                    row["cloudcover_mean"]
+                )
+                monthly_aggregate[month]["relative_humidity_2m_mean"] += float(
+                    row["relative_humidity_2m_mean"]
+                )
+                monthly_aggregate[month]["windspeed_10m_max"] += float(
+                    row["windspeed_10m_max"]
+                )
+                monthly_aggregate[month]["count"] += 1
+            except (TypeError, ValueError, KeyError):
+                continue
+
+    monthly_averages = []
+    for month in range(1, 13):
+        data = monthly_aggregate[month]
+        count = data["count"]
+        if count == 0:
+            continue
+
+        monthly_averages.append(
+            {
+                "month": month,
+                "temperature_2m_max": round(data["temperature_2m_max"] / count, 2),
+                "temperature_2m_min": round(data["temperature_2m_min"] / count, 2),
+                "shortwave_radiation_sum": round(
+                    data["shortwave_radiation_sum"] / count, 2
+                ),
+                "cloudcover_mean": round(data["cloudcover_mean"] / count, 2),
+                "relative_humidity_2m_mean": round(
+                    data["relative_humidity_2m_mean"] / count, 2
+                ),
+                "windspeed_10m_max": round(data["windspeed_10m_max"] / count, 2),
+            }
+        )
+
+    return monthly_averages
+
+
 @app.get("/")
 def home():
     # Simple health check route for the backend.
-    return jsonify({"message": "AI Solar Advisor backend is running"})
+    return jsonify({"message": "SolisIQ backend is running"})
 
 
 @app.get("/weather")
@@ -132,12 +251,18 @@ def weather_lookup():
     try:
         # Step 1: use Open-Meteo geocoding to turn city -> latitude/longitude.
         geocode_url = "https://geocoding-api.open-meteo.com/v1/search"
-        geocode_response = requests.get(geocode_url, params={"name": city, "count": 1}, timeout=20)
+        geocode_response = requests.get(
+            geocode_url, params={"name": city, "count": 1}, timeout=20
+        )
         geocode_response.raise_for_status()
         geocode_data = geocode_response.json()
 
         if not geocode_data.get("results"):
-            return jsonify({"error": f"No results found for city: {city}. Please try another name."}), 404
+            return jsonify(
+                {
+                    "error": f"No results found for city: {city}. Please try another name."
+                }
+            ), 404
 
         result = geocode_data["results"][0]
         lat = result["latitude"]
@@ -160,13 +285,15 @@ def weather_lookup():
 
         current = forecast_data.get("current", {})
 
-        return jsonify({
-            "temperature": round(float(current.get("temperature_2m", 25)), 2),
-            "cloudcover": round(float(current.get("cloud_cover", 20)), 2),
-            "humidity": round(float(current.get("relative_humidity_2m", 60)), 2),
-            "windspeed": round(float(current.get("wind_speed_10m", 10)), 2),
-            "radiation": round(float(current.get("shortwave_radiation", 20)), 2),
-        })
+        return jsonify(
+            {
+                "temperature": round(float(current.get("temperature_2m", 25)), 2),
+                "cloudcover": round(float(current.get("cloud_cover", 20)), 2),
+                "humidity": round(float(current.get("relative_humidity_2m", 60)), 2),
+                "windspeed": round(float(current.get("wind_speed_10m", 10)), 2),
+                "radiation": round(float(current.get("shortwave_radiation", 20)), 2),
+            }
+        )
     except requests.Timeout:
         fallback = get_local_weather_fallback()
         return jsonify(fallback), 200
@@ -250,11 +377,13 @@ def admin_stats():
         cursor.close()
         conn.close()
 
-        return jsonify({
-            "total_users": total_users,
-            "total_calculations": total_calculations,
-            "new_registrations_this_week": new_registrations_this_week,
-        })
+        return jsonify(
+            {
+                "total_users": total_users,
+                "total_calculations": total_calculations,
+                "new_registrations_this_week": new_registrations_this_week,
+            }
+        )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
 
@@ -273,6 +402,56 @@ def admin_users():
         conn.close()
 
         return jsonify({"users": users})
+    except mysql.connector.Error as exc:
+        return jsonify({"error": f"Database error: {exc}"}), 500
+
+
+@app.get("/community-stats")
+def community_stats():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT COUNT(*) AS total_calculations, "
+            "AVG(monthly_savings) AS avg_monthly_savings, "
+            "AVG(payback_period) AS avg_payback_period, "
+            "AVG(predicted_output) AS avg_predicted_output "
+            "FROM calculations"
+        )
+        overall = cursor.fetchone() or {}
+
+        cursor.execute(
+            "SELECT city, COUNT(*) AS calculations, "
+            "AVG(monthly_savings) AS avg_monthly_savings, "
+            "AVG(payback_period) AS avg_payback_period "
+            "FROM calculations "
+            "GROUP BY city "
+            "ORDER BY calculations DESC "
+            "LIMIT 6"
+        )
+        city_breakdown = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify(
+            {
+                "total_calculations": int(overall.get("total_calculations", 0)),
+                "avg_monthly_savings": float(overall.get("avg_monthly_savings") or 0),
+                "avg_payback_period": float(overall.get("avg_payback_period") or 0),
+                "avg_predicted_output": float(overall.get("avg_predicted_output") or 0),
+                "top_cities": [
+                    {
+                        "city": row["city"],
+                        "calculations": int(row["calculations"] or 0),
+                        "avg_monthly_savings": float(row["avg_monthly_savings"] or 0),
+                        "avg_payback_period": float(row["avg_payback_period"] or 0),
+                    }
+                    for row in city_breakdown
+                ],
+            }
+        )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
 
@@ -344,7 +523,9 @@ def login():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, username, email, password FROM users WHERE email = %s", (email,))
+        cursor.execute(
+            "SELECT id, username, email, password FROM users WHERE email = %s", (email,)
+        )
         user = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -361,11 +542,17 @@ def login():
         }
         token = jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
 
-        return jsonify({"message": "Login successful.", "token": token, "user": {
-            "id": user["id"],
-            "username": user["username"],
-            "email": user["email"],
-        }})
+        return jsonify(
+            {
+                "message": "Login successful.",
+                "token": token,
+                "user": {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "email": user["email"],
+                },
+            }
+        )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
 
@@ -383,12 +570,17 @@ def admin_login():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, username, email, password_hash FROM admins WHERE username = %s", (username,))
+        cursor.execute(
+            "SELECT id, username, email, password_hash FROM admins WHERE username = %s",
+            (username,),
+        )
         admin = cursor.fetchone()
         cursor.close()
         conn.close()
 
-        if not admin or not bcrypt.check_password_hash(admin["password_hash"], password):
+        if not admin or not bcrypt.check_password_hash(
+            admin["password_hash"], password
+        ):
             return jsonify({"error": "Invalid admin credentials."}), 401
 
         payload = {
@@ -400,7 +592,9 @@ def admin_login():
         }
         token = jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
 
-        return jsonify({"message": "Admin login successful.", "token": token, "isAdmin": True})
+        return jsonify(
+            {"message": "Admin login successful.", "token": token, "isAdmin": True}
+        )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
 
@@ -454,7 +648,9 @@ def delete_my_calculation(calculation_id):
         conn.close()
 
         if affected == 0:
-            return jsonify({"error": "Calculation not found or not owned by this user."}), 404
+            return jsonify(
+                {"error": "Calculation not found or not owned by this user."}
+            ), 404
 
         return jsonify({"message": "Calculation deleted."})
     except mysql.connector.Error as exc:
@@ -466,31 +662,39 @@ def predict():
     # This route accepts weather values from the frontend and sends them to the model.
     data = request.get_json(silent=True) or {}
 
-    required_fields = ["temperature", "cloudcover", "humidity", "windspeed", "radiation"]
+    required_fields = [
+        "temperature",
+        "cloudcover",
+        "humidity",
+        "windspeed",
+        "radiation",
+    ]
     missing = [field for field in required_fields if field not in data]
 
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
     if model is None:
-        return jsonify({"error": "Model file not found. Please train the model first."}), 500
+        return jsonify(
+            {"error": "Model file not found. Please train the model first."}
+        ), 500
 
     # Our trained model expects 6 features, but the frontend sends 5 values.
     # For a simple demo, we reuse the temperature value for both temperature columns.
-    features = [[
-        data["temperature"],
-        data["temperature"],
-        data["radiation"],
-        data["cloudcover"],
-        data["humidity"],
-        data["windspeed"],
-    ]]
+    features = [
+        [
+            data["temperature"],
+            data["temperature"],
+            data["radiation"],
+            data["cloudcover"],
+            data["humidity"],
+            data["windspeed"],
+        ]
+    ]
 
     prediction = model.predict(features)[0]
 
-    return jsonify({
-        "predicted_energy_output_kwh": round(float(prediction), 3)
-    })
+    return jsonify({"predicted_energy_output_kwh": round(float(prediction), 3)})
 
 
 @app.post("/calculate-roi")
@@ -509,19 +713,8 @@ def calculate_roi():
     tariff_rate = float(data["tariffRate"])
     state = str(data["state"])
 
-    # Simple hardcoded subsidy table for 8 states.
-    subsidies = {
-        "Delhi": 40,
-        "Maharashtra": 20,
-        "Gujarat": 40,
-        "Tamil Nadu": 25,
-        "Karnataka": 20,
-        "Uttar Pradesh": 15,
-        "Rajasthan": 30,
-        "Punjab": 20,
-    }
-
-    subsidy_percent = subsidies.get(state, 10)
+    subsidy_info = get_state_subsidy(state)
+    subsidy_percent = subsidy_info["percent"]
 
     # Convert rooftop area from sq ft to square meters.
     rooftop_area_m2 = rooftop_area * 0.0929
@@ -549,7 +742,11 @@ def calculate_roi():
     system_cost = installed_capacity_kw * 60000
     annual_savings = estimated_monthly_savings * 12
     lifetime_savings_25_years = annual_savings * 25
-    roi_percent = ((lifetime_savings_25_years - system_cost) / system_cost * 100) if system_cost > 0 else 0
+    roi_percent = (
+        ((lifetime_savings_25_years - system_cost) / system_cost * 100)
+        if system_cost > 0
+        else 0
+    )
     payback_years = system_cost / annual_savings if annual_savings > 0 else 0
 
     city = str(data.get("city", "")).strip() or "Unknown"
@@ -561,7 +758,14 @@ def calculate_roi():
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO calculations (user_id, city, monthly_bill, predicted_output, monthly_savings, payback_period) VALUES (%s, %s, %s, %s, %s, %s)",
-                (user_id, city, monthly_bill, predicted_output, estimated_monthly_savings, round(payback_years, 2)),
+                (
+                    user_id,
+                    city,
+                    monthly_bill,
+                    predicted_output,
+                    estimated_monthly_savings,
+                    round(payback_years, 2),
+                ),
             )
             conn.commit()
             cursor.close()
@@ -569,19 +773,51 @@ def calculate_roi():
         except mysql.connector.Error:
             pass
 
-    return jsonify({
-        "recommended_capacity_kw": round(required_capacity_kw, 2),
-        "required_panel_capacity_kw": round(installed_capacity_kw, 2),
-        "monthly_units_kwh": round(monthly_units_kwh, 2),
-        "annual_savings": round(annual_savings, 2),
-        "lifetime_savings_25_years": round(lifetime_savings_25_years, 2),
-        "roi_percent": round(roi_percent, 2),
-        "number_of_panels": number_of_panels,
-        "roof_area_required_sq_ft": round(roof_area_required_sq_ft, 1),
-        "estimated_monthly_savings": round(estimated_monthly_savings, 2),
-        "payback_period_years": round(payback_years, 2),
-        "state_subsidy_percent": subsidy_percent,
-    })
+    return jsonify(
+        {
+            "recommended_capacity_kw": round(required_capacity_kw, 2),
+            "required_panel_capacity_kw": round(installed_capacity_kw, 2),
+            "monthly_units_kwh": round(monthly_units_kwh, 2),
+            "annual_savings": round(annual_savings, 2),
+            "lifetime_savings_25_years": round(lifetime_savings_25_years, 2),
+            "roi_percent": round(roi_percent, 2),
+            "number_of_panels": number_of_panels,
+            "roof_area_required_sq_ft": round(roof_area_required_sq_ft, 1),
+            "estimated_monthly_savings": round(estimated_monthly_savings, 2),
+            "payback_period_years": round(payback_years, 2),
+            "state_subsidy_percent": subsidy_percent,
+        }
+    )
+
+
+@app.get("/subsidy-info")
+def subsidy_info():
+    state = request.args.get("state", "").strip()
+    capacity_kw = request.args.get("capacity_kw", "")
+
+    if not state:
+        return jsonify({"error": "State is required."}), 400
+    if not capacity_kw:
+        return jsonify({"error": "Rooftop capacity is required."}), 400
+
+    try:
+        capacity_kw_value = float(capacity_kw)
+    except ValueError:
+        return jsonify({"error": "Rooftop capacity must be a number."}), 400
+
+    subsidy_info = get_state_subsidy(state)
+    system_cost = capacity_kw_value * SYSTEM_COST_PER_KW
+    subsidy_amount = system_cost * subsidy_info["percent"] / 100
+
+    return jsonify(
+        {
+            "state": state,
+            "subsidy_percent": subsidy_info["percent"],
+            "subsidy_amount": round(subsidy_amount, 2),
+            "scheme_name": subsidy_info.get("scheme"),
+            "system_cost": round(system_cost, 2),
+        }
+    )
 
 
 @app.post("/carbon-footprint")
@@ -596,10 +832,74 @@ def carbon_footprint():
     co2_saved_kg = energy_output_kwh * 0.82
     tree_equivalent = co2_saved_kg / 21
 
-    return jsonify({
-        "co2_saved_kg": round(co2_saved_kg, 2),
-        "tree_equivalent": round(tree_equivalent, 2),
-    })
+    return jsonify(
+        {
+            "co2_saved_kg": round(co2_saved_kg, 2),
+            "tree_equivalent": round(tree_equivalent, 2),
+        }
+    )
+
+
+@app.get("/seasonal-breakdown")
+def seasonal_breakdown():
+    city = request.args.get("city", "").strip() or "Historical average"
+
+    try:
+        monthly_weather = get_average_monthly_weather()
+    except FileNotFoundError:
+        return jsonify({"error": "Historical weather dataset not found."}), 500
+
+    if model is None:
+        return jsonify(
+            {"error": "Model file not found. Please train the model first."}
+        ), 500
+
+    features = [
+        [
+            month_data["temperature_2m_max"],
+            month_data["temperature_2m_min"],
+            month_data["shortwave_radiation_sum"],
+            month_data["cloudcover_mean"],
+            month_data["relative_humidity_2m_mean"],
+            month_data["windspeed_10m_max"],
+        ]
+        for month_data in monthly_weather
+    ]
+
+    predicted_values = model.predict(features)
+    monthly_breakdown = [
+        {
+            "month": MONTH_NAMES[index],
+            "predicted_energy_output_kwh": round(float(predicted_values[index]), 3),
+        }
+        for index in range(len(predicted_values))
+    ]
+
+    return jsonify(
+        {
+            "city": city,
+            "monthly_breakdown": monthly_breakdown,
+        }
+    )
+
+
+@app.get("/model-comparison")
+def model_comparison():
+    comparison_path = os.path.join(
+        os.path.dirname(__file__), "model", "model_comparison.json"
+    )
+
+    if not os.path.exists(comparison_path):
+        return jsonify(
+            {"error": "Model comparison data not found. Train the model first."}
+        ), 404
+
+    try:
+        with open(comparison_path, "r", encoding="utf-8") as comparison_file:
+            comparison_data = comparison_file.read()
+        return Response(comparison_data, mimetype="application/json")
+    except OSError as exc:
+        return jsonify({"error": f"Could not read comparison data: {exc}"}), 500
 
 
 @app.post("/generate-report")
@@ -627,15 +927,21 @@ def generate_report():
 
     # Report title at the top of the page.
     pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawString(50, 760, "AI Solar Advisor — Personalized Report")
+    pdf.drawString(50, 760, "SolisIQ — Personalized Report")
 
     # Input summary: what the user entered into the calculator.
     pdf.setFont("Helvetica-Bold", 12)
     pdf.drawString(50, 730, "Input Summary")
     pdf.setFont("Helvetica", 11)
     pdf.drawString(50, 712, f"City: {city}")
-    pdf.drawString(50, 696, f"Rooftop Area: {rooftop_area if rooftop_area is not None else 'N/A'} sq ft")
-    pdf.drawString(50, 680, f"Monthly Bill: ₹{monthly_bill if monthly_bill is not None else 'N/A'}")
+    pdf.drawString(
+        50,
+        696,
+        f"Rooftop Area: {rooftop_area if rooftop_area is not None else 'N/A'} sq ft",
+    )
+    pdf.drawString(
+        50, 680, f"Monthly Bill: ₹{monthly_bill if monthly_bill is not None else 'N/A'}"
+    )
     pdf.drawString(50, 664, f"State: {state}")
 
     # Results summary table header.
@@ -648,7 +954,9 @@ def generate_report():
     row_height = 20
     table_width = 500
     pdf.setLineWidth(0.5)
-    pdf.rect(table_x, table_y - row_height * 7, table_width, row_height * 7, stroke=1, fill=0)
+    pdf.rect(
+        table_x, table_y - row_height * 7, table_width, row_height * 7, stroke=1, fill=0
+    )
 
     # Column separators for the table.
     pdf.line(table_x + 300, table_y - row_height * 7, table_x + 300, table_y)
@@ -662,22 +970,46 @@ def generate_report():
     pdf.drawString(table_x + 310, table_y - 16, "Value")
 
     pdf.drawString(table_x + 10, table_y - row_height - 16, "Predicted Output")
-    pdf.drawString(table_x + 310, table_y - row_height - 16, f"{predicted_output if predicted_output is not None else 'N/A'} kWh/day")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height - 16,
+        f"{predicted_output if predicted_output is not None else 'N/A'} kWh/day",
+    )
 
     pdf.drawString(table_x + 10, table_y - row_height * 2 - 16, "Monthly Savings")
-    pdf.drawString(table_x + 310, table_y - row_height * 2 - 16, f"₹{monthly_savings if monthly_savings is not None else 'N/A'}")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height * 2 - 16,
+        f"₹{monthly_savings if monthly_savings is not None else 'N/A'}",
+    )
 
     pdf.drawString(table_x + 10, table_y - row_height * 3 - 16, "Annual Savings")
-    pdf.drawString(table_x + 310, table_y - row_height * 3 - 16, f"INR {annual_savings if annual_savings is not None else 'N/A'}")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height * 3 - 16,
+        f"INR {annual_savings if annual_savings is not None else 'N/A'}",
+    )
 
     pdf.drawString(table_x + 10, table_y - row_height * 4 - 16, "Payback Period")
-    pdf.drawString(table_x + 310, table_y - row_height * 4 - 16, f"{payback_period if payback_period is not None else 'N/A'} years")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height * 4 - 16,
+        f"{payback_period if payback_period is not None else 'N/A'} years",
+    )
 
     pdf.drawString(table_x + 10, table_y - row_height * 5 - 16, "CO2 Saved")
-    pdf.drawString(table_x + 310, table_y - row_height * 5 - 16, f"{co2_saved if co2_saved is not None else 'N/A'} kg/year")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height * 5 - 16,
+        f"{co2_saved if co2_saved is not None else 'N/A'} kg/year",
+    )
 
     pdf.drawString(table_x + 10, table_y - row_height * 6 - 16, "Trees Equivalent")
-    pdf.drawString(table_x + 310, table_y - row_height * 6 - 16, f"{tree_equivalent if tree_equivalent is not None else 'N/A'}")
+    pdf.drawString(
+        table_x + 310,
+        table_y - row_height * 6 - 16,
+        f"{tree_equivalent if tree_equivalent is not None else 'N/A'}",
+    )
 
     # Footer with the generation date so the document record is clear.
     pdf.setFont("Helvetica-Oblique", 9)
@@ -690,17 +1022,18 @@ def generate_report():
     return Response(
         buffer.getvalue(),
         mimetype="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=ai_solar_advisor_report.pdf"},
+        headers={
+            "Content-Disposition": "attachment; filename=ai_solar_advisor_report.pdf"
+        },
     )
 
 
 @app.get("/report/<user_id>")
 def report_stub(user_id):
     # This is a simple placeholder route for future report work.
-    return jsonify({
-        "message": f"Report stub for user {user_id}",
-        "status": "coming soon"
-    })
+    return jsonify(
+        {"message": f"Report stub for user {user_id}", "status": "coming soon"}
+    )
 
 
 if __name__ == "__main__":
