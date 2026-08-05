@@ -1,7 +1,9 @@
+import json
 import os
 import numpy as np
 import pandas as pd
 import joblib
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -14,7 +16,9 @@ import matplotlib.pyplot as plt
 # ---- File paths ----
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "weather_data.csv")
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "solar_model.pkl")
+COMPARISON_PATH = os.path.join(os.path.dirname(__file__), "model_comparison.json")
 PLOT_PATH = os.path.join(os.path.dirname(__file__), "prediction_plot.png")
+
 
 # ---- Load data ----
 def load_data():
@@ -38,9 +42,7 @@ def load_data():
     # The formula is:
     # energy_output_kwh = shortwave_radiation_sum * 5 * 0.18 * 0.75 / 1000
     # This is just an approximate example, because we do not have real panel output data.
-    df["energy_output_kwh"] = (
-        df["shortwave_radiation_sum"] * 5 * 0.18 * 0.75 / 1000
-    )
+    df["energy_output_kwh"] = df["shortwave_radiation_sum"] * 5 * 0.18 * 0.75 / 1000
 
     # Add small random noise so the training data looks a little more realistic.
     np.random.seed(42)
@@ -84,10 +86,43 @@ def train_model(df, feature_columns):
     joblib.dump(model, MODEL_PATH)
     print(f"Saved model to: {MODEL_PATH}")
 
+    # Train a simple Linear Regression baseline model on the same data.
+    baseline = LinearRegression()
+    baseline.fit(X_train, y_train)
+    baseline_predictions = baseline.predict(X_test)
+
+    baseline_rmse = mean_squared_error(y_test, baseline_predictions) ** 0.5
+    baseline_mae = mean_absolute_error(y_test, baseline_predictions)
+    baseline_r2 = r2_score(y_test, baseline_predictions)
+
+    print("Baseline Linear Regression evaluation")
+    print("----------------------------------------")
+    print(f"RMSE: {baseline_rmse:.4f}")
+    print(f"MAE:  {baseline_mae:.4f}")
+    print(f"R²:   {baseline_r2:.4f}")
+
+    comparison_metrics = {
+        "random_forest": {
+            "rmse": round(rmse, 4),
+            "mae": round(mae, 4),
+            "r2": round(r2, 4),
+        },
+        "linear_regression": {
+            "rmse": round(baseline_rmse, 4),
+            "mae": round(baseline_mae, 4),
+            "r2": round(baseline_r2, 4),
+        },
+    }
+
+    with open(COMPARISON_PATH, "w", encoding="utf-8") as comparison_file:
+        json.dump(comparison_metrics, comparison_file, indent=2)
+
+    print(f"Saved comparison metrics to: {COMPARISON_PATH}")
+
     # Create a scatter plot of actual vs predicted values.
     plt.figure(figsize=(6, 6))
     plt.scatter(y_test, predictions, alpha=0.6)
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], "r--")
     plt.xlabel("Actual Energy Output (kWh)")
     plt.ylabel("Predicted Energy Output (kWh)")
     plt.title("Actual vs Predicted Solar Output")
