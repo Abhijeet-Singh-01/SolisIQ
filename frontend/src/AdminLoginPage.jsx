@@ -23,6 +23,22 @@ function AdminLoginPage({ onAdminLogin, switchToLogin }) {
     return '';
   };
 
+  const getApiErrorMessage = (err, fallback) => {
+    if (!err?.response) {
+      return err?.message || fallback || 'Unable to connect. Please check your network and try again.';
+    }
+
+    if (err.response.status === 400) {
+      return err.response.data?.error || fallback || 'Invalid credentials or request. Please try again.';
+    }
+
+    if (err.response.status >= 500) {
+      return err.response.data?.error || fallback || 'Server error. Please try again later.';
+    }
+
+    return err.response.data?.error || err.response.data?.message || fallback || 'Admin login failed. Please try again.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationError = validate();
@@ -38,16 +54,16 @@ function AdminLoginPage({ onAdminLogin, switchToLogin }) {
       const response = await axios.post('http://127.0.0.1:5000/admin/login', {
         username: formData.username,
         password: formData.password,
-      });
+      }, { timeout: 10000 });
 
       if (response.data?.token) {
         onAdminLogin(response.data.token);
         navigate('/admin/dashboard');
       } else {
-        setError('Admin login failed.');
+        setError('Admin login failed. Please verify your credentials.');
       }
     } catch (err) {
-      const message = err?.response?.data?.error || 'Admin login failed.';
+      const message = getApiErrorMessage(err, 'Admin login failed. Please verify your credentials.');
       setError(message);
     } finally {
       setLoading(false);

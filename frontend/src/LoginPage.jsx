@@ -13,6 +13,27 @@ function LoginPage({ onLogin, switchToSignup, switchToAdmin }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const getNetworkErrorMessage = (error) => {
+    if (!error.response) {
+      return 'Unable to connect. Please check your connection and try again.';
+    }
+
+    const status = error.response.status;
+    const backendMessage = error.response.data?.error;
+
+    if (status === 400) {
+      return backendMessage || 'Please check your inputs and try again.';
+    }
+    if (status === 401) {
+      return backendMessage || 'Invalid credentials. Please log in again.';
+    }
+    if (status >= 500) {
+      return 'Something went wrong on our end. Please try again shortly.';
+    }
+
+    return backendMessage || 'Login failed. Please try again.';
+  };
+
   const validate = () => {
     if (!formData.email.trim()) {
       return 'Email is required.';
@@ -53,8 +74,7 @@ function LoginPage({ onLogin, switchToSignup, switchToAdmin }) {
         setError('Login failed. Please try again.');
       }
     } catch (err) {
-      const message = err?.response?.data?.error || 'Login failed. Please check your credentials.';
-      setError(message);
+      setError(getNetworkErrorMessage(err));
     } finally {
       setLoading(false);
     }

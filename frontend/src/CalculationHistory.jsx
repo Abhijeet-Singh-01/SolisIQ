@@ -24,7 +24,8 @@ function CalculationHistory({ history, loading, error, onDelete }) {
         treeEquivalent: co2SavedKg / 21,
       });
     } catch (downloadException) {
-      setDownloadError('Could not download this report. Please try again.');
+      const message = downloadException?.message || 'Could not download this report. Please try again.';
+      setDownloadError(message);
       console.error('History report download failed', downloadException);
     } finally {
       setDownloadingId(null);

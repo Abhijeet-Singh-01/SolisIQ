@@ -8,6 +8,7 @@ import DashboardPage from './DashboardPage';
 import AdminDashboardPage from './AdminDashboardPage';
 import ProtectedRoute from './ProtectedRoute';
 import HomePage from './HomePage';
+import SubsidyCheckerPage from './SubsidyCheckerPage';
 
 function App() {
   const [token, setToken] = useState('');
@@ -50,6 +51,7 @@ function App() {
         <Route path="/login" element={<LoginPage onLogin={handleLogin} switchToSignup={() => {}} switchToAdmin={() => {}} />} />
         <Route path="/signup" element={<SignupPage onSignup={() => {}} switchToLogin={() => {}} />} />
         <Route path="/admin/login" element={<AdminLoginPage onAdminLogin={handleAdminLogin} switchToLogin={() => {}} />} />
+        <Route path="/subsidy-checker" element={<SubsidyCheckerPage />} />
         <Route
           path="/dashboard"
           element={

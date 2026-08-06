@@ -14,6 +14,27 @@ function SignupPage({ onSignup, switchToLogin }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const getSignupErrorMessage = (error) => {
+    if (!error.response) {
+      return 'Unable to connect. Please check your connection and try again.';
+    }
+
+    const status = error.response.status;
+    const backendMessage = error.response.data?.error;
+
+    if (status === 400) {
+      return backendMessage || 'Please check your inputs and try again.';
+    }
+    if (status === 401) {
+      return backendMessage || 'Unauthorized request. Please try again.';
+    }
+    if (status >= 500) {
+      return 'Something went wrong on our end. Please try again shortly.';
+    }
+
+    return backendMessage || 'Signup failed. Please try again.';
+  };
+
   const validate = () => {
     if (!formData.username.trim()) {
       return 'Username is required.';
@@ -61,8 +82,7 @@ function SignupPage({ onSignup, switchToLogin }) {
         setError('Signup failed. Please try again.');
       }
     } catch (err) {
-      const message = err?.response?.data?.error || 'Signup failed. Please try again.';
-      setError(message);
+      setError(getSignupErrorMessage(err));
     } finally {
       setLoading(false);
     }
