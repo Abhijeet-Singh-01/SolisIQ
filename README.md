@@ -1,6 +1,6 @@
-# ☀️ AI Solar Advisor
+# ☀️ SolisIQ
 
-**An AI-powered platform that helps homeowners estimate solar panel savings, ROI, and environmental impact based on real weather data.**
+**An AI-powered solar planning platform for homeowners that combines weather-based predictions, savings and ROI calculations, subsidy guidance, and a polished dashboard experience.**
 
 ![Status](https://img.shields.io/badge/status-active-success)
 ![React](https://img.shields.io/badge/frontend-React-61DAFB?logo=react&logoColor=black)
@@ -12,33 +12,54 @@
 
 ## 📖 Overview
 
-AI Solar Advisor is a full-stack web application that answers a simple question for any homeowner: **"Is solar worth it for me?"**
+SolisIQ is a full-stack web application that helps homeowners answer a simple question: **"Is solar worth it for me?"**
 
-It combines real historical weather data, a trained machine learning model, and location-aware financial calculations to give users a personalized, data-backed recommendation — instead of a generic one-size-fits-all estimate.
-
+The app combines real weather lookup, a trained machine learning model, ROI and savings calculations, subsidy estimates, and environmental impact analysis in one experience. It also includes authentication, calculation history, admin tools, and downloadable reports.
 
 ---
 
-## ✨ Features
+## ✨ Feature Set
 
-### For Users
-- 🔐 **Account system** — secure signup, login, and session management
-- ⚡ **Solar Calculator** — enter your monthly electricity bill and location to get:
-  - Recommended solar capacity (kW)
-  - Number of panels required
-  - Roof area required
-  - Monthly, annual, and 25-year lifetime savings
-  - Payback period and ROI
-- 🤖 **AI-Powered Prediction** — a trained ML model estimates energy output using real historical weather and solar irradiance data
-- 📊 **Interactive Dashboard** — visual charts for monthly/yearly savings and before-vs-after electricity cost comparison
-- 🌱 **Environmental Impact** — CO₂ emissions reduced, tree-equivalent offset, and green energy generated
-- 🕓 **Calculation History** — every calculation is saved to your account; revisit or delete past results anytime
-- 📄 **PDF Reports** — download a clean, professional report of any calculation
+### Core Experience
+- 🏠 **Home page** with a polished hero section and project overview
+- 🔐 **Authentication** for users, including signup, login, and protected dashboard access
+- ⚡ **Solar calculator** for location, monthly bill, rooftop area, and state-based analysis
+- 📊 **Interactive dashboard** with savings, payback, and environmental impact summaries
+- 🕓 **Calculation history** so users can revisit and manage past analyses
+- 📄 **PDF report export** for generated solar assessments
+- 🎨 **Futuristic UI theme** with a card-based layout, dark mode support, and animated counters
 
-### For Admins
-- 🔑 **Secure Admin Login** — separate authentication from regular users
-- 📈 **Admin Dashboard** — total users, total calculations, new registrations at a glance
-- 👥 **User Management** — view, search, and remove user accounts
+### AI & Analytics Features
+- 🤖 **Weather-based energy prediction** using a trained ML model
+- 📈 **Model comparison** between Random Forest and Linear Regression baselines
+- 🌦️ **Seasonal output variation** chart for month-by-month forecast behavior
+- 🧠 **Community insights** section with aggregated usage statistics and top locations
+- 🌱 **Carbon impact estimates** and tree-equivalent reporting
+
+### Advanced Modules
+- 🏛️ **Government subsidy checker** for state-based subsidy estimates
+- 🎙️ **Voice input** for entering the monthly bill amount
+- 🏠 **Roof layout visualization** showing an illustrative panel placement view
+- 🔔 **Recent activity / notification feed** on the dashboard experience
+- 📌 **Methodology disclaimer** and calculation explanation panel in the dashboard
+- ✅ **Reliability improvements** including loading states, validation, empty states, and error handling
+
+### Admin Features
+- 🔑 **Admin login** and separate admin-only access
+- 📈 **Admin dashboard** with user and calculation statistics
+- 👥 **User management** tools for viewing and removing accounts
+
+### Not Yet Implemented
+The following items were checked against the current codebase and are not implemented yet:
+- Confidence intervals on predictions
+- Explainable AI / feature importance explanations
+- Recommendation tiers such as “Highly Recommended / Recommended / Consider Alternatives”
+- Battery storage add-on calculator
+- Maintenance cost estimation in ROI calculations
+- Slider-based inputs on the calculator
+- A 25-year timeline scrubber
+- Excel export
+- A dedicated leaderboard-style community ranking page
 
 ---
 
@@ -46,60 +67,63 @@ It combines real historical weather data, a trained machine learning model, and 
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React, Recharts (data visualization), Axios |
-| **Backend** | Python, Flask, Flask-CORS |
+| **Frontend** | React, React Router, Axios, Recharts |
+| **UI Enhancements** | Custom animated counters, responsive card layouts, dark mode styling |
+| **Backend** | Python, Flask, Flask-CORS, Flask-Bcrypt |
 | **Database** | MySQL (via Laragon / phpMyAdmin) |
-| **Machine Learning** | scikit-learn (RandomForestRegressor), pandas, numpy |
-| **Authentication** | JWT (JSON Web Tokens), bcrypt password hashing |
+| **Authentication** | JWT-based auth with bcrypt password hashing |
+| **Machine Learning** | scikit-learn, pandas, numpy, joblib |
 | **PDF Generation** | ReportLab |
-| **Weather Data** | Open-Meteo API (historical + real-time) |
+| **Weather Data** | Open-Meteo API (weather lookup and historical data) |
 
 ---
 
 ## 🏗️ System Architecture
 
-```
-┌─────────────┐        ┌──────────────┐        ┌─────────────────┐
-│   React     │◄──────►│    Flask     │◄──────►│      MySQL       │
-│  Frontend   │  REST  │   Backend    │  SQL   │    Database      │
-│             │  API   │              │        │                  │
-└─────────────┘        └──────┬───────┘        └─────────────────┘
-                               │
-                    ┌──────────┴──────────┐
-                    │                     │
-              ┌─────▼─────┐       ┌──────▼──────┐
-              │  ML Model  │       │  Open-Meteo │
-              │ (RandomFor-│       │     API     │
-              │   est)     │       │             │
-              └───────────┘       └─────────────┘
+```text
+React Frontend
+  └─ Flask Backend
+       ├─ Weather lookup + ML prediction
+       ├─ ROI / subsidy / carbon calculations
+       ├─ MySQL storage for auth and saved calculations
+       └─ PDF report generation
 ```
 
-**Data flow:** User enters location + bill → backend fetches live weather data → ML model predicts energy output → financial calculations run (savings, ROI, payback) → results rendered on dashboard → optionally saved to history → optionally exported as PDF.
+**Data flow:** User enters location and bill details → weather lookup runs → ML model predicts energy output → ROI, subsidy, and carbon calculations are generated → results are shown on the dashboard → optionally saved to history or exported as a PDF.
 
 ---
 
 ## 📂 Project Structure
 
-```
-ai-solar-advisor/
+```text
+solis-iq/
 ├── frontend/
+│   ├── public/
+│   │   └── index.html
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── HomePage.jsx
-│   │   │   ├── SolarInputForm.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   └── ...
-│   │   ├── App.jsx
-│   │   └── index.js
+│   │   ├── App.js
+│   │   ├── HomePage.jsx
+│   │   ├── SolarInputForm.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── DashboardPage.jsx
+│   │   ├── CalculationHistory.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── SignupPage.jsx
+│   │   ├── AdminLoginPage.jsx
+│   │   ├── AdminDashboardPage.jsx
+│   │   ├── SubsidyCheckerPage.jsx
+│   │   ├── reportDownload.js
+│   │   ├── useCountUp.js
+│   │   └── index.css
 │   └── package.json
 ├── backend/
+│   ├── app.py
+│   ├── data/
+│   │   ├── fetch_data.py
+│   │   └── weather_data.csv
 │   ├── model/
 │   │   ├── train_model.py
-│   │   └── solar_model.pkl
-│   ├── data/
-│   │   └── weather_data.csv
-│   ├── app.py
+│   │   └── model_comparison.json
 │   └── requirements.txt
 └── README.md
 ```
@@ -115,8 +139,8 @@ ai-solar-advisor/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/ai-solar-advisor.git
-cd ai-solar-advisor
+git clone https://github.com/your-username/solis-iq.git
+cd solis-iq
 ```
 
 ### 2. Backend Setup
@@ -129,8 +153,8 @@ Backend runs on `http://localhost:5000` by default.
 
 ### 3. Database Setup
 1. Start MySQL via Laragon (or your local server)
-2. Open phpMyAdmin → create a database named `solar_advisor`
-3. Import the schema: `Import` tab → select `backend/data/schema.sql`
+2. Open phpMyAdmin and create a database named `solar_advisor`
+3. Import the schema from the backend data folder if available for your environment
 
 ### 4. Frontend Setup
 ```bash
@@ -140,51 +164,37 @@ npm start
 ```
 Frontend runs on `http://localhost:3000` by default.
 
-### 5. Train the ML Model (optional — pre-trained model included)
+### 5. Train or refresh the ML model (optional)
 ```bash
 cd backend/model
 python train_model.py
 ```
+This regenerates the model and refreshes the comparison metrics used by the homepage.
 
 ---
 
 ## 📊 Model Performance
 
-The energy prediction model was trained on 2 years of historical weather data using a Random Forest Regressor.
-
-
-
-## 🔮 Future Scope
-
-- 🤖 AI chatbot assistant for solar-related queries
-- 💰 Solar loan / EMI calculator
-- 📅 Online consultation booking
-- 🔧 Installation request & maintenance reminders
-- 📡 Live IoT-based energy monitoring (sensor integration)
-- 📩 Email/SMS notifications for reports and reminders
-- 🧠 AI-powered cost optimization suggestions
+The current implementation uses a Random Forest regressor trained on historical weather data, with a Linear Regression baseline shown for comparison on the homepage. The backend also serves seasonal breakdown and community insight data.
 
 ---
 
 ## 🔒 Security
 
-- Passwords hashed using bcrypt — never stored in plain text
-- JWT-based authentication with protected routes
-- Parameterized SQL queries to prevent injection attacks
-- Input validation and sanitization on all forms
+- Passwords are hashed with bcrypt before storage
+- JWT-based authentication is used for protected routes
+- Input validation and error handling are included on the main flows
 
 ---
 
-
-
 ## 👤 Author
 
-**[Abhijeet Singh]**
+**Abhijeet Singh**
 Project — AKTU
-[abhijeetsingh01122006@gmail.com] · [Your LinkedIn/GitHub]
+abhijeetsingh01122006@gmail.com
 
 ---
 
 ## 📄 License
 
-This project was developed for academic purposes as part of a final year engineering project.
+    This project was developed for academic purposes as part of a final-year engineering project.
