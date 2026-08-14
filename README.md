@@ -1,5 +1,5 @@
 # ☀️ SolisIQ
-
+git statuscls
 **An AI-powered solar planning platform for homeowners that combines weather-based predictions, savings and ROI calculations, subsidy guidance, and a polished dashboard experience.**
 
 ![Status](https://img.shields.io/badge/status-active-success)
@@ -198,3 +198,4 @@ abhijeetsingh01122006@gmail.com
 ## 📄 License
 
     This project was developed for academic purposes as part of a final-year engineering project.
+    

@@ -1,13 +1,27 @@
-flask
-flask-cors
-scikit-learn
-pandas
-numpy
-joblib
-requests
-reportlab
-flask-bcrypt
-PyJWT
-mysql-connector-python          
+# Core web framework
+Flask==3.1.3
+flask-cors==6.0.5
+Werkzeug==3.1.8
+
+# Machine learning and data processing
+scikit-learn==1.5.2
+pandas==3.0.3
+numpy==2.3.4
+joblib==1.5.3
+scipy==1.18.0
+
+# Database and authentication
+mysql-connector-python==9.7.0
+Flask-Bcrypt==1.0.1
+bcrypt==5.0.0
+PyJWT==2.13.0
+
+# Utilities
+requests==2.34.2
+python-dotenv==1.0.1
+reportlab==5.0.0
+
+# Production server
+gunicorn==23.0.0
 
 

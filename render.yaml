@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: solis-iq-backend
+    env: python
+    region: oregon
+    plan: free
+    
+    # Root directory where render.yaml is located
+    rootDir: backend
+    
+    # Build command - install dependencies
+    buildCommand: pip install -r requirements.txt
+    
+    # Start command - use gunicorn for production
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    
+    # Health check
+    healthCheckPath: /
+    
+    # Environment variables - set in Render dashboard
+    # These are REQUIRED to be set in Render:
+    # - SECRET_KEY (must be a secure random string)
+    # - DB_HOST (MySQL server host)
+    # - DB_USER (MySQL username)
+    # - DB_PASSWORD (MySQL password)
+    # - DB_NAME (MySQL database name)
+    # - FLASK_ENV (set to "production")
+    # - CORS_ORIGINS (frontend URL, e.g., https://yourdomain.com)
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: CORS_ORIGINS
+        scope: runtime

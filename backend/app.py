@@ -5,6 +5,15 @@ from functools import wraps
 from io import BytesIO
 
 import joblib
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional dependency fallback
+    print(
+        "WARNING: python-dotenv not installed. Install it with: pip install python-dotenv"
+    )
+    load_dotenv = None
+
 import jwt
 import requests
 from flask import Flask, jsonify, request, Response
@@ -19,26 +28,92 @@ import mysql.connector
 # requests from the React frontend and sends back useful results.
 
 app = Flask(__name__)
-CORS(app)
+
+# Load environment variables from .env files
+# Try to load from backend/.env first, then from project root .env
+env_file_backend = os.path.join(os.path.dirname(__file__), ".env")
+env_file_root = os.path.join(os.path.dirname(__file__), "..", ".env")
+
+if load_dotenv is not None:
+    # Load backend .env first (most specific)
+    if os.path.exists(env_file_backend):
+        print(f"Loading environment variables from {env_file_backend}")
+        load_dotenv(env_file_backend)
+
+    # Load root .env (less specific, won't override backend .env)
+    if os.path.exists(env_file_root):
+        print(f"Loading environment variables from {env_file_root}")
+        load_dotenv(env_file_root)
+else:
+    print("ERROR: python-dotenv is required but not installed!")
+    print("Please install it with: pip install python-dotenv")
+
+# Configure CORS - allow specific origins or all origins based on environment
+cors_origins = os.getenv("CORS_ORIGINS", "*")
+if cors_origins == "*":
+    CORS(app)
+else:
+    # Parse comma-separated origins for production
+    origins_list = [o.strip() for o in cors_origins.split(",")]
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": origins_list,
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+                "supports_credentials": True,
+            }
+        },
+    )
+
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
 
 bcrypt = Bcrypt(app)
 
+# Load database configuration from environment variables
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")  # Will be empty string if not set
+DB_NAME = os.getenv("DB_NAME", "solar_advisor")
+DB_CONNECTION_TIMEOUT = int(os.getenv("DB_CONNECTION_TIMEOUT", "5"))
+
+# Validate database credentials in production
+if os.getenv("FLASK_ENV") == "production" and not DB_PASSWORD:
+    print("ERROR: DB_PASSWORD environment variable is not set!")
+    print(
+        "Please set DB_PASSWORD in your environment variables before deploying to production."
+    )
+
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "solar_advisor"),
+    "host": DB_HOST,
+    "port": DB_PORT,
+    "user": DB_USER,
+    "password": DB_PASSWORD,
+    "database": DB_NAME,
     "charset": "utf8mb4",
     "autocommit": True,
-    "connection_timeout": int(os.getenv("DB_CONNECTION_TIMEOUT", "5")),
+    "connection_timeout": DB_CONNECTION_TIMEOUT,
 }
 
 
 def get_db_connection():
     # This helps us connect to MySQL when the auth routes need to read or write user data.
-    return mysql.connector.connect(**DB_CONFIG)
+    try:
+        return mysql.connector.connect(**DB_CONFIG)
+    except mysql.connector.Error as err:
+        error_msg = f"MySQL Connection Error: {err}"
+        print(error_msg)
+
+        # Log connection details for debugging (but don't expose password)
+        print(
+            f"Connection details: host={DB_CONFIG['host']}, port={DB_CONFIG['port']}, user={DB_CONFIG['user']}, db={DB_CONFIG['database']}"
+        )
+        if not DB_CONFIG["password"]:
+            print("WARNING: DB_PASSWORD is empty! Set it in your .env file.")
+
+        raise
 
 
 def create_calculations_table():
@@ -1041,4 +1116,14 @@ if __name__ == "__main__":
         create_calculations_table()
     except mysql.connector.Error as exc:
         print(f"Warning: failed to create calculations table: {exc}")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+
+    # Get PORT from environment variable (Render sets this automatically)
+    port = int(os.environ.get("PORT", 5000))
+
+    # Use debug mode only in development
+    debug_mode = os.environ.get("FLASK_ENV") == "development"
+
+    # Log startup info
+    print(f"Starting Flask server on port {port} (debug={debug_mode})")
+
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)

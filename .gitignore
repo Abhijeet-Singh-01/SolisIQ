@@ -28,12 +28,20 @@ backend/dist/
 # Python
 # ==========================
 .venv/
+.venv-1/
 .venv310/
 venv/
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg
 
 # ==========================
 # Logs
