@@ -21,15 +21,20 @@ backend/dist/
 # Environment Variables
 # ==========================
 .env
+*.env
+backend/.env
 .env.*
 !.env.example
+!backend/.env.example
 
 # ==========================
 # Python
 # ==========================
 .venv/
+.venv*/
 .venv-1/
 .venv310/
+.venv312/
 venv/
 __pycache__/
 *.py[cod]

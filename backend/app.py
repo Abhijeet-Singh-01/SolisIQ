@@ -78,6 +78,7 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")  # Will be empty string if not set
 DB_NAME = os.getenv("DB_NAME", "solar_advisor")
 DB_CONNECTION_TIMEOUT = int(os.getenv("DB_CONNECTION_TIMEOUT", "5"))
+USE_SSL = os.getenv("USE_SSL", "true").lower() == "true"
 
 # Validate database credentials in production
 if os.getenv("FLASK_ENV") == "production" and not DB_PASSWORD:
@@ -86,6 +87,10 @@ if os.getenv("FLASK_ENV") == "production" and not DB_PASSWORD:
         "Please set DB_PASSWORD in your environment variables before deploying to production."
     )
 
+# Check if using Aiven (non-standard port or host)
+is_aiven = "aivencloud.com" in DB_HOST or DB_PORT != 3306
+
+# Build database configuration with optional SSL support
 DB_CONFIG = {
     "host": DB_HOST,
     "port": DB_PORT,
@@ -96,6 +101,15 @@ DB_CONFIG = {
     "autocommit": True,
     "connection_timeout": DB_CONNECTION_TIMEOUT,
 }
+
+# Add SSL configuration for Aiven (required by Aiven for remote connections)
+if is_aiven or USE_SSL:
+    # Aiven requires SSL for remote connections
+    # mysql-connector-python will use SSL with verify_cert=False for Aiven free tier
+    DB_CONFIG["ssl_disabled"] = False
+    DB_CONFIG["ssl_verify_cert"] = False
+    DB_CONFIG["ssl_verify_identity"] = False
+    print(f"Configuring MySQL connection with SSL for Aiven database")
 
 
 def get_db_connection():
@@ -112,6 +126,14 @@ def get_db_connection():
         )
         if not DB_CONFIG["password"]:
             print("WARNING: DB_PASSWORD is empty! Set it in your .env file.")
+
+        # Additional help for Aiven connections
+        if "aivencloud.com" in DB_CONFIG.get("host", ""):
+            print("TIP: For Aiven MySQL connections:")
+            print("  - Ensure DB_HOST includes the full Aiven hostname")
+            print("  - Ensure DB_PORT is set to Aiven port (usually 11461)")
+            print("  - Ensure DB_PASSWORD is correctly set from Aiven dashboard")
+            print("  - SSL is automatically enabled for Aiven connections")
 
         raise
 

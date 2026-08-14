@@ -5,29 +5,32 @@ services:
     region: oregon
     plan: free
     
-    # Root directory where render.yaml is located
-    rootDir: backend
+    # Build command - install dependencies from backend/requirements.txt
+    buildCommand: pip install -r backend/requirements.txt
     
-    # Build command - install dependencies
-    buildCommand: pip install -r requirements.txt
-    
-    # Start command - use gunicorn for production
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    # Start command - use gunicorn from repository root, chdir to backend
+    startCommand: gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app
     
     # Health check
     healthCheckPath: /
     
     # Environment variables - set in Render dashboard
     # These are REQUIRED to be set in Render:
-    # - SECRET_KEY (must be a secure random string)
-    # - DB_HOST (MySQL server host)
-    # - DB_USER (MySQL username)
-    # - DB_PASSWORD (MySQL password)
-    # - DB_NAME (MySQL database name)
-    # - FLASK_ENV (set to "production")
-    # - CORS_ORIGINS (frontend URL, e.g., https://yourdomain.com)
+    # FLASK_ENV=production
+    # SECRET_KEY=<secure random string>
+    # DB_HOST=<Aiven host>
+    # DB_PORT=11461
+    # DB_USER=avnadmin
+    # DB_PASSWORD=<from Aiven dashboard>
+    # DB_NAME=defaultdb
+    # DB_CONNECTION_TIMEOUT=5
+    # CORS_ORIGINS=<your frontend URL>
+    # USE_SSL=true
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
       - key: FLASK_ENV
         value: production
-      - key: CORS_ORIGINS
-        scope: runtime
+      - key: USE_SSL
+        value: "true"
+
