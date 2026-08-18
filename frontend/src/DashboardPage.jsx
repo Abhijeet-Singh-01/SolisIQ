@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 import SolarInputForm from './SolarInputForm';
 import Dashboard from './Dashboard';
 import CalculationHistory from './CalculationHistory';
@@ -74,7 +75,7 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
     setHistoryError('');
 
     try {
-      const response = await axios.get('http://127.0.0.1:5000/my-calculations', {
+      const response = await axios.get(`${API_BASE_URL}/my-calculations`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -97,7 +98,7 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
     setCommunityError('');
 
     try {
-      const response = await axios.get('http://127.0.0.1:5000/community-stats');
+      const response = await axios.get(`${API_BASE_URL}/community-stats`);
       setCommunityStats(response.data);
     } catch (err) {
       const message = getApiErrorMessage(err, 'Could not load community insights.');
@@ -137,7 +138,7 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
     if (!token) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:5000/my-calculations/${calculationId}`, {
+      await axios.delete(`${API_BASE_URL}/my-calculations/${calculationId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -68,6 +68,8 @@ else:
     )
 
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
+if os.getenv("FLASK_ENV") == "production" and app.config["SECRET_KEY"] == "dev-secret-key":
+    print("WARNING: Using default SECRET_KEY in production! Please set SECRET_KEY in environment variables.")
 
 bcrypt = Bcrypt(app)
 
@@ -138,27 +140,90 @@ def get_db_connection():
         raise
 
 
-def create_calculations_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS calculations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            city VARCHAR(255) NOT NULL,
-            monthly_bill FLOAT NOT NULL,
-            predicted_output FLOAT NOT NULL,
-            monthly_savings FLOAT NOT NULL,
-            payback_period FLOAT NOT NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX (user_id)
+def init_db():
+    """Initializes all database tables (users, admins, calculations) and seeds default admin."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Users table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
         )
-        """
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
+
+        # 2. Admins table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS admins (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                email VARCHAR(255) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        # 3. Calculations table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS calculations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                city VARCHAR(255) NOT NULL,
+                monthly_bill FLOAT NOT NULL,
+                predicted_output FLOAT NOT NULL,
+                monthly_savings FLOAT NOT NULL,
+                payback_period FLOAT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX (user_id)
+            )
+            """
+        )
+        conn.commit()
+
+        # 4. Seed default admin if none exists
+        cursor.execute("SELECT COUNT(*) FROM admins")
+        admin_count = cursor.fetchone()[0]
+        if admin_count == 0:
+            default_admin_username = os.getenv("ADMIN_USERNAME", "admin")
+            default_admin_password = os.getenv("ADMIN_PASSWORD", "Admin@123")
+            default_admin_email = os.getenv("ADMIN_EMAIL", "admin@solisiq.local")
+            hashed_admin_password = bcrypt.generate_password_hash(
+                default_admin_password
+            ).decode("utf-8")
+            cursor.execute(
+                "INSERT INTO admins (username, email, password_hash) VALUES (%s, %s, %s)",
+                (default_admin_username, default_admin_email, hashed_admin_password),
+            )
+            conn.commit()
+            print(f"Default admin user '{default_admin_username}' initialized.")
+    except mysql.connector.Error as exc:
+        print(f"Warning: Database initialization skipped/failed: {exc}")
+    except Exception as exc:
+        print(f"Warning: Unexpected database initialization error: {exc}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# Run database initialization on application startup
+try:
+    init_db()
+except Exception as exc:
+    print(f"Database initialization warning on startup: {exc}")
 
 
 def get_authenticated_user_id():
@@ -456,6 +521,8 @@ def admin_required(f):
 @app.get("/admin/stats")
 @admin_required
 def admin_stats():
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -471,9 +538,6 @@ def admin_stats():
         )
         new_registrations_this_week = cursor.fetchone()[0]
 
-        cursor.close()
-        conn.close()
-
         return jsonify(
             {
                 "total_users": total_users,
@@ -483,11 +547,18 @@ def admin_stats():
         )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/admin/users")
 @admin_required
 def admin_users():
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -495,16 +566,20 @@ def admin_users():
             "SELECT id, username, email, created_at FROM users ORDER BY created_at DESC"
         )
         users = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
         return jsonify({"users": users})
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/community-stats")
 def community_stats():
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -529,12 +604,9 @@ def community_stats():
         )
         city_breakdown = cursor.fetchall()
 
-        cursor.close()
-        conn.close()
-
         return jsonify(
             {
-                "total_calculations": int(overall.get("total_calculations", 0)),
+                "total_calculations": int(overall.get("total_calculations") or 0),
                 "avg_monthly_savings": float(overall.get("avg_monthly_savings") or 0),
                 "avg_payback_period": float(overall.get("avg_payback_period") or 0),
                 "avg_predicted_output": float(overall.get("avg_predicted_output") or 0),
@@ -551,19 +623,24 @@ def community_stats():
         )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.delete("/admin/users/<int:user_id>")
 @admin_required
 def delete_admin_user(user_id):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         affected = cursor.rowcount
         conn.commit()
-        cursor.close()
-        conn.close()
 
         if affected == 0:
             return jsonify({"error": "User not found."}), 404
@@ -571,11 +648,15 @@ def delete_admin_user(user_id):
         return jsonify({"message": "User deleted."})
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.post("/signup")
 def signup():
-    # This route lets a new user create an account.
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
     email = (data.get("email") or "").strip().lower()
@@ -584,6 +665,8 @@ def signup():
     if not username or not email or not password:
         return jsonify({"error": "Username, email, and password are required."}), 400
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -599,17 +682,18 @@ def signup():
             (username, email, hashed_password),
         )
         conn.commit()
-        cursor.close()
-        conn.close()
-
         return jsonify({"message": "User registered successfully."})
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.post("/login")
 def login():
-    # This route checks a regular user's email and password.
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
@@ -617,6 +701,8 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email and password are required."}), 400
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -624,8 +710,6 @@ def login():
             "SELECT id, username, email, password FROM users WHERE email = %s", (email,)
         )
         user = cursor.fetchone()
-        cursor.close()
-        conn.close()
 
         if not user or not bcrypt.check_password_hash(user["password"], password):
             return jsonify({"error": "Invalid email or password."}), 401
@@ -652,11 +736,15 @@ def login():
         )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.post("/admin/login")
 def admin_login():
-    # This route checks admin credentials against the admins table instead of the users table.
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
     password = data.get("password") or ""
@@ -664,6 +752,8 @@ def admin_login():
     if not username or not password:
         return jsonify({"error": "Username and password are required."}), 400
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -672,8 +762,6 @@ def admin_login():
             (username,),
         )
         admin = cursor.fetchone()
-        cursor.close()
-        conn.close()
 
         if not admin or not bcrypt.check_password_hash(
             admin["password_hash"], password
@@ -694,12 +782,16 @@ def admin_login():
         )
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/profile")
 @token_required
 def profile():
-    # This route is protected and only works when a valid JWT is sent in the header.
     payload = request.user_payload
     return jsonify({"message": "Authenticated", "user": payload})
 
@@ -710,6 +802,8 @@ def get_my_calculations():
     payload = request.user_payload
     user_id = payload.get("user_id")
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -718,12 +812,14 @@ def get_my_calculations():
             (user_id,),
         )
         records = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
         return jsonify({"calculations": records})
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.delete("/my-calculations/<int:calculation_id>")
@@ -732,6 +828,8 @@ def delete_my_calculation(calculation_id):
     payload = request.user_payload
     user_id = payload.get("user_id")
 
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -741,8 +839,6 @@ def delete_my_calculation(calculation_id):
         )
         affected = cursor.rowcount
         conn.commit()
-        cursor.close()
-        conn.close()
 
         if affected == 0:
             return jsonify(
@@ -752,11 +848,15 @@ def delete_my_calculation(calculation_id):
         return jsonify({"message": "Calculation deleted."})
     except mysql.connector.Error as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.post("/predict")
 def predict():
-    # This route accepts weather values from the frontend and sends them to the model.
     data = request.get_json(silent=True) or {}
 
     required_fields = [
@@ -771,32 +871,37 @@ def predict():
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
+    try:
+        temperature = float(data["temperature"])
+        cloudcover = float(data["cloudcover"])
+        humidity = float(data["humidity"])
+        windspeed = float(data["windspeed"])
+        radiation = float(data["radiation"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "Weather parameters must be numeric."}), 400
+
     if model is None:
         return jsonify(
             {"error": "Model file not found. Please train the model first."}
         ), 500
 
-    # Our trained model expects 6 features, but the frontend sends 5 values.
-    # For a simple demo, we reuse the temperature value for both temperature columns.
     features = [
         [
-            data["temperature"],
-            data["temperature"],
-            data["radiation"],
-            data["cloudcover"],
-            data["humidity"],
-            data["windspeed"],
+            temperature,
+            temperature,
+            radiation,
+            cloudcover,
+            humidity,
+            windspeed,
         ]
     ]
 
     prediction = model.predict(features)[0]
-
     return jsonify({"predicted_energy_output_kwh": round(float(prediction), 3)})
 
 
 @app.post("/calculate-roi")
 def calculate_roi():
-    # This route estimates how much solar a user might need and how quickly it pays back.
     data = request.get_json(silent=True) or {}
 
     required_fields = ["monthlyBill", "rooftopArea", "tariffRate", "state"]
@@ -805,11 +910,31 @@ def calculate_roi():
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
-    monthly_bill = float(data["monthlyBill"])
-    rooftop_area = float(data["rooftopArea"])
-    tariff_rate = float(data["tariffRate"])
-    state = str(data["state"])
+    try:
+        monthly_bill = float(data["monthlyBill"])
+        rooftop_area = float(data["rooftopArea"])
+        tariff_rate = float(data["tariffRate"])
+    except (ValueError, TypeError):
+        return (
+            jsonify(
+                {
+                    "error": "monthlyBill, rooftopArea, and tariffRate must be valid numbers."
+                }
+            ),
+            400,
+        )
 
+    if monthly_bill <= 0 or rooftop_area <= 0 or tariff_rate <= 0:
+        return (
+            jsonify(
+                {
+                    "error": "monthlyBill, rooftopArea, and tariffRate must be positive numbers."
+                }
+            ),
+            400,
+        )
+
+    state = str(data["state"]).strip()
     subsidy_info = get_state_subsidy(state)
     subsidy_percent = subsidy_info["percent"]
 
@@ -818,7 +943,7 @@ def calculate_roi():
 
     # Approximate solar output: 1 kW system produces about 4 kWh/day in this demo.
     monthly_units_kwh = monthly_bill / tariff_rate
-    daily_units_kwh = monthly_units_kwh / 30
+    daily_units_kwh = monthly_units_kwh / 30.0
     required_capacity_kw = daily_units_kwh / 4.0
 
     # Limit capacity based on available roof area.
@@ -832,24 +957,30 @@ def calculate_roi():
     roof_area_required_sq_ft = roof_area_required_sq_m * 10.7639
 
     # Estimate monthly savings from solar generation.
-    monthly_generation_kwh = installed_capacity_kw * 120
+    monthly_generation_kwh = installed_capacity_kw * 120.0
     estimated_monthly_savings = monthly_generation_kwh * tariff_rate
 
-    # Estimate payback period using a rough system cost.
-    system_cost = installed_capacity_kw * 60000
-    annual_savings = estimated_monthly_savings * 12
-    lifetime_savings_25_years = annual_savings * 25
+    # Estimate payback period using system cost.
+    system_cost = installed_capacity_kw * 60000.0
+    annual_savings = estimated_monthly_savings * 12.0
+    lifetime_savings_25_years = annual_savings * 25.0
     roi_percent = (
-        ((lifetime_savings_25_years - system_cost) / system_cost * 100)
+        ((lifetime_savings_25_years - system_cost) / system_cost * 100.0)
         if system_cost > 0
-        else 0
+        else 0.0
     )
-    payback_years = system_cost / annual_savings if annual_savings > 0 else 0
+    payback_years = system_cost / annual_savings if annual_savings > 0 else 0.0
 
     city = str(data.get("city", "")).strip() or "Unknown"
-    predicted_output = float(data.get("predicted_output", 0))
+    try:
+        predicted_output = float(data.get("predicted_output", 0))
+    except (ValueError, TypeError):
+        predicted_output = 0.0
+
     user_id = get_authenticated_user_id()
     if user_id:
+        conn = None
+        cursor = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -865,15 +996,19 @@ def calculate_roi():
                 ),
             )
             conn.commit()
-            cursor.close()
-            conn.close()
-        except mysql.connector.Error:
-            pass
+        except mysql.connector.Error as exc:
+            print(f"Warning: could not save calculation: {exc}")
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
     return jsonify(
         {
             "recommended_capacity_kw": round(required_capacity_kw, 2),
             "required_panel_capacity_kw": round(installed_capacity_kw, 2),
+            "system_cost": round(system_cost, 2),
             "monthly_units_kwh": round(monthly_units_kwh, 2),
             "annual_savings": round(annual_savings, 2),
             "lifetime_savings_25_years": round(lifetime_savings_25_years, 2),
@@ -899,8 +1034,11 @@ def subsidy_info():
 
     try:
         capacity_kw_value = float(capacity_kw)
-    except ValueError:
-        return jsonify({"error": "Rooftop capacity must be a number."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Rooftop capacity must be a valid number."}), 400
+
+    if capacity_kw_value <= 0:
+        return jsonify({"error": "Rooftop capacity must be greater than zero."}), 400
 
     subsidy_info = get_state_subsidy(state)
     system_cost = capacity_kw_value * SYSTEM_COST_PER_KW
@@ -919,15 +1057,21 @@ def subsidy_info():
 
 @app.post("/carbon-footprint")
 def carbon_footprint():
-    # This route turns predicted solar output into a CO2 reduction estimate.
     data = request.get_json(silent=True) or {}
 
     if "energyOutputKwh" not in data:
         return jsonify({"error": "Missing field: energyOutputKwh"}), 400
 
-    energy_output_kwh = float(data["energyOutputKwh"])
+    try:
+        energy_output_kwh = float(data["energyOutputKwh"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "energyOutputKwh must be a valid number."}), 400
+
+    if energy_output_kwh < 0:
+        return jsonify({"error": "energyOutputKwh cannot be negative."}), 400
+
     co2_saved_kg = energy_output_kwh * 0.82
-    tree_equivalent = co2_saved_kg / 21
+    tree_equivalent = co2_saved_kg / 21.0
 
     return jsonify(
         {
@@ -1135,9 +1279,9 @@ def report_stub(user_id):
 
 if __name__ == "__main__":
     try:
-        create_calculations_table()
-    except mysql.connector.Error as exc:
-        print(f"Warning: failed to create calculations table: {exc}")
+        init_db()
+    except Exception as exc:
+        print(f"Warning: failed to initialize database: {exc}")
 
     # Get PORT from environment variable (Render sets this automatically)
     port = int(os.environ.get("PORT", 5000))

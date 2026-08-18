@@ -1,4 +1,5 @@
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
 const getDownloadErrorMessage = (error) => {
   if (!error?.response) {
@@ -19,7 +20,7 @@ const getDownloadErrorMessage = (error) => {
 export async function downloadPdfReport(reportData) {
   try {
     const response = await axios.post(
-      'http://127.0.0.1:5000/generate-report',
+      `${API_BASE_URL}/generate-report`,
       reportData,
       { responseType: 'blob' },
     );

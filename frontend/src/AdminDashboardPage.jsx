@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
 function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
   const navigate = useNavigate();
@@ -52,8 +53,8 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
 
     try {
       const [statsResponse, usersResponse] = await Promise.all([
-        axios.get('http://127.0.0.1:5000/admin/stats', authConfig),
-        axios.get('http://127.0.0.1:5000/admin/users', authConfig),
+        axios.get(`${API_BASE_URL}/admin/stats`, authConfig),
+        axios.get(`${API_BASE_URL}/admin/users`, authConfig),
       ]);
 
       setStats(statsResponse.data);
@@ -97,7 +98,7 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
     setError('');
 
     try {
-      await axios.delete(`http://127.0.0.1:5000/admin/users/${userId}`, authConfig);
+      await axios.delete(`${API_BASE_URL}/admin/users/${userId}`, authConfig);
       setUsers((currentUsers) => currentUsers.filter((account) => account.id !== userId));
       setStats((currentStats) => (
         currentStats

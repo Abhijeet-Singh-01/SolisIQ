@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
-function AdminLoginPage({ onAdminLogin, switchToLogin }) {
+function AdminLoginPage({ onAdminLogin }) {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ function AdminLoginPage({ onAdminLogin, switchToLogin }) {
     setError('');
 
     try {
-      const response = await axios.post('http://127.0.0.1:5000/admin/login', {
+      const response = await axios.post(`${API_BASE_URL}/admin/login`, {
         username: formData.username,
         password: formData.password,
       }, { timeout: 10000 });

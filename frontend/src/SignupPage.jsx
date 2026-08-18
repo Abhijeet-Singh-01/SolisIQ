@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
-function SignupPage({ onSignup, switchToLogin }) {
+function SignupPage({ onSignup }) {
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,7 +69,7 @@ function SignupPage({ onSignup, switchToLogin }) {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://127.0.0.1:5000/signup', {
+      const response = await axios.post(`${API_BASE_URL}/signup`, {
         username: formData.username,
         email: formData.email,
         password: formData.password,

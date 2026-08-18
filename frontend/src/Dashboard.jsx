@@ -37,7 +37,7 @@ function Dashboard({ results }) {
     withSolar: Math.max(700, 1200 + index * 60 - (estimated_monthly_savings || 0) * 0.9),
   }));
 
-  const systemCostEstimate = Number(recommended_capacity_kw || 0) * 60000;
+  const systemCostEstimate = Number(roi.system_cost ?? (Number(recommended_capacity_kw || 0) * 60000));
   const paybackProgress = payback_period_years > 0 ? Math.min(100, Math.max(8, (1 / payback_period_years) * 100)) : 100;
   const breakEvenLabel = payback_period_years > 0 ? `around Year ${Math.ceil(payback_period_years)}` : 'within the first year';
 

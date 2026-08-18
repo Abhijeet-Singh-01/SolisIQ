@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import API_BASE_URL from './apiConfig';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function HomePage() {
       setComparisonError('');
 
       try {
-        const response = await fetch('http://127.0.0.1:5000/model-comparison', {
+        const response = await fetch(`${API_BASE_URL}/model-comparison`, {
           signal: controller.signal,
         });
 
@@ -113,7 +114,7 @@ function HomePage() {
       <section className="subsidy-link-card">
         <h2>Check your state subsidy</h2>
         <p>Use our subsidy checker to estimate the support available for your rooftop solar system.</p>
-        <button className="primary-btn" onClick={() => window.location.href = '/subsidy-checker'}>
+        <button className="primary-btn" onClick={() => navigate('/subsidy-checker')}>
           Go to Subsidy Checker
         </button>
       </section>
@@ -165,9 +166,9 @@ function HomePage() {
           <p>Helping households make smarter solar choices.</p>
         </div>
         <div className="footer-links">
-          <a href="/">Home</a>
-          <a href="/calculator">Calculator</a>
-          <a href="/login">Login</a>
+          <Link to="/">Home</Link>
+          <Link to="/calculator">Calculator</Link>
+          <Link to="/login">Login</Link>
         </div>
         <div className="footer-copy">© 2026 SolisIQ. All rights reserved.</div>
       </footer>

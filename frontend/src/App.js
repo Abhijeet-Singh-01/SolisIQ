@@ -11,27 +11,45 @@ import HomePage from './HomePage';
 import SubsidyCheckerPage from './SubsidyCheckerPage';
 
 function App() {
-  const [token, setToken] = useState('');
-  const [user, setUser] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [token, setToken] = useState(() => localStorage.getItem('solisiq_token') || '');
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('solisiq_user');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('solisiq_dark_mode') === 'true');
 
   const handleLogin = (jwtToken, userData) => {
     setToken(jwtToken);
     setUser(userData);
+    localStorage.setItem('solisiq_token', jwtToken);
+    localStorage.setItem('solisiq_user', JSON.stringify(userData));
   };
 
   const handleAdminLogin = (jwtToken) => {
+    const adminData = { username: 'Admin', email: 'admin@solisiq.local' };
     setToken(jwtToken);
-    setUser({ username: 'Admin', email: 'admin@local' });
+    setUser(adminData);
+    localStorage.setItem('solisiq_token', jwtToken);
+    localStorage.setItem('solisiq_user', JSON.stringify(adminData));
   };
 
   const handleLogout = () => {
     setToken('');
     setUser(null);
+    localStorage.removeItem('solisiq_token');
+    localStorage.removeItem('solisiq_user');
   };
 
   const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
+    setDarkMode((prev) => {
+      const next = !prev;
+      localStorage.setItem('solisiq_dark_mode', String(next));
+      return next;
+    });
   };
 
   return (
@@ -48,9 +66,9 @@ function App() {
               toggleDarkMode={toggleDarkMode}
             />
         } />
-        <Route path="/login" element={<LoginPage onLogin={handleLogin} switchToSignup={() => {}} switchToAdmin={() => {}} />} />
-        <Route path="/signup" element={<SignupPage onSignup={() => {}} switchToLogin={() => {}} />} />
-        <Route path="/admin/login" element={<AdminLoginPage onAdminLogin={handleAdminLogin} switchToLogin={() => {}} />} />
+        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/signup" element={<SignupPage onSignup={() => {}} />} />
+        <Route path="/admin/login" element={<AdminLoginPage onAdminLogin={handleAdminLogin} />} />
         <Route path="/subsidy-checker" element={<SubsidyCheckerPage />} />
         <Route
           path="/dashboard"

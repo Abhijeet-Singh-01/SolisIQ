@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
 const states = [
   'Delhi',
@@ -25,6 +27,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
   const [listening, setListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
   const recognitionRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -190,7 +193,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
     }
 
     try {
-      const weatherResponse = await axios.get('http://127.0.0.1:5000/weather', {
+      const weatherResponse = await axios.get(`${API_BASE_URL}/weather`, {
         params: { city: formData.city },
         timeout: 10000,
       });
@@ -200,7 +203,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
         throw new Error(weatherData?.error || 'Weather lookup failed for that location. Please try another city.');
       }
 
-      const predictionResponse = await axios.post('http://127.0.0.1:5000/predict', {
+      const predictionResponse = await axios.post(`${API_BASE_URL}/predict`, {
         temperature: weatherData.temperature,
         cloudcover: weatherData.cloudcover,
         humidity: weatherData.humidity,
@@ -212,7 +215,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
         throw new Error(predictionResponse?.data?.error || 'Prediction failed. Please try again.');
       }
 
-      const roiResponse = await axios.post('http://127.0.0.1:5000/calculate-roi', {
+      const roiResponse = await axios.post(`${API_BASE_URL}/calculate-roi`, {
         monthlyBill: Number(formData.monthlyBill),
         rooftopArea: Number(formData.rooftopArea),
         tariffRate: 7,
@@ -228,8 +231,16 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
         throw new Error(roiResponse?.data?.error || 'Savings calculation failed. Please try again.');
       }
 
-      const carbonResponse = await axios.post('http://127.0.0.1:5000/carbon-footprint', {
-        energyOutputKwh: predictionResponse.data.predicted_energy_output_kwh,
+      // Calculate annual generation in kWh for realistic carbon footprint and tree offset
+      const installedCapacity = Number(
+        roiResponse.data.required_panel_capacity_kw ||
+        roiResponse.data.recommended_capacity_kw ||
+        1
+      );
+      const annualGenerationKwh = installedCapacity * 120.0 * 12.0;
+
+      const carbonResponse = await axios.post(`${API_BASE_URL}/carbon-footprint`, {
+        energyOutputKwh: annualGenerationKwh,
       }, { timeout: 10000 });
 
       if (!carbonResponse?.data || carbonResponse.data.error) {
@@ -238,7 +249,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
 
       let seasonalBreakdown = [];
       try {
-        const seasonalResponse = await axios.get('http://127.0.0.1:5000/seasonal-breakdown', {
+        const seasonalResponse = await axios.get(`${API_BASE_URL}/seasonal-breakdown`, {
           params: { city: formData.city },
           timeout: 10000,
         });
@@ -268,7 +279,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
       const message = getApiErrorMessage(err);
       setError(message);
       if (err.response?.status === 401) {
-        window.location.href = '/login';
+        navigate('/login');
       }
       console.error(err);
     } finally {

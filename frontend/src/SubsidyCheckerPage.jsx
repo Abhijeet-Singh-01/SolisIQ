@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from './apiConfig';
 
 const states = [
   'Delhi',
@@ -53,7 +54,7 @@ function SubsidyCheckerPage() {
 
     setLoading(true);
     try {
-      const response = await axios.get('http://127.0.0.1:5000/subsidy-info', {
+      const response = await axios.get(`${API_BASE_URL}/subsidy-info`, {
         params: {
           state: formData.state,
           capacity_kw: formData.capacity_kw,
