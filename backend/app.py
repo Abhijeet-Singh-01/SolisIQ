@@ -29,21 +29,13 @@ import mysql.connector
 
 app = Flask(__name__)
 
-# Load environment variables from .env files
-# Try to load from backend/.env first, then from project root .env
-env_file_backend = os.path.join(os.path.dirname(__file__), ".env")
-env_file_root = os.path.join(os.path.dirname(__file__), "..", ".env")
+# Load environment variables from the single root .env file
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_ENV_PATH = os.path.join(ROOT_DIR, ".env")
 
 if load_dotenv is not None:
-    # Load backend .env first (most specific)
-    if os.path.exists(env_file_backend):
-        print(f"Loading environment variables from {env_file_backend}")
-        load_dotenv(env_file_backend)
-
-    # Load root .env (less specific, won't override backend .env)
-    if os.path.exists(env_file_root):
-        print(f"Loading environment variables from {env_file_root}")
-        load_dotenv(env_file_root)
+    if os.path.exists(ROOT_ENV_PATH):
+        load_dotenv(ROOT_ENV_PATH)
 else:
     print("ERROR: python-dotenv is required but not installed!")
     print("Please install it with: pip install python-dotenv")
@@ -67,20 +59,31 @@ else:
         },
     )
 
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")
+app.config["SECRET_KEY"] = (
+    os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET") or "dev-secret-key"
+)
 if os.getenv("FLASK_ENV") == "production" and app.config["SECRET_KEY"] == "dev-secret-key":
     print("WARNING: Using default SECRET_KEY in production! Please set SECRET_KEY in environment variables.")
 
 bcrypt = Bcrypt(app)
 
 # Load database configuration from environment variables
-DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-DB_PORT = int(os.getenv("DB_PORT", "3306"))
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")  # Will be empty string if not set
-DB_NAME = os.getenv("DB_NAME", "solar_advisor")
-DB_CONNECTION_TIMEOUT = int(os.getenv("DB_CONNECTION_TIMEOUT", "5"))
-USE_SSL = os.getenv("USE_SSL", "true").lower() == "true"
+DB_HOST = (os.getenv("DB_HOST") or "127.0.0.1").strip()
+try:
+    DB_PORT = int(str(os.getenv("DB_PORT", "3306")).strip())
+except (ValueError, TypeError):
+    DB_PORT = 3306
+DB_USER = (os.getenv("DB_USER") or "root").strip()
+DB_PASSWORD = (os.getenv("DB_PASSWORD") or "").strip()
+DB_NAME = (os.getenv("DB_NAME") or "solar_advisor").strip()
+try:
+    DB_CONNECTION_TIMEOUT = int(str(os.getenv("DB_CONNECTION_TIMEOUT", "5")).strip())
+except (ValueError, TypeError):
+    DB_CONNECTION_TIMEOUT = 5
+USE_SSL = (
+    str(os.getenv("USE_SSL") or os.getenv("DB_SSL") or "true").strip().lower()
+    in ("true", "1", "yes")
+)
 
 # Validate database credentials in production
 if os.getenv("FLASK_ENV") == "production" and not DB_PASSWORD:

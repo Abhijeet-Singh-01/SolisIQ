@@ -21,11 +21,9 @@ backend/dist/
 # Environment Variables
 # ==========================
 .env
-*.env
-backend/.env
 .env.*
+*.env
 !.env.example
-!backend/.env.example
 
 # ==========================
 # Python
