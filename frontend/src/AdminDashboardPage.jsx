@@ -89,125 +89,124 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
       <main className="solis-main-content">
         <section className="admin-dash-header">
           <div className="admin-dash-header-inner">
-            <div className="calc-eyebrow">
-              <span className="eyebrow-dot" />
-              <ShieldCheck size={14} className="eyebrow-icon" />
-              <span>ADMINISTRATIVE CONTROL CONSOLE</span>
+            <div className="calc-kicker-wrap">
+              <span className="kicker-dot" />
+              <span className="calc-mono-kicker">ADMINISTRATIVE OPERATIONS</span>
             </div>
-            <h1 className="admin-dash-title">Platform Operations & User Registry</h1>
-            <p className="admin-dash-sub">
-              Manage registered accounts, view system telemetry, and inspect database state.
+            <h1 className="admin-editorial-title">Platform Registry & Systems</h1>
+            <p className="admin-editorial-desc">
+              Manage registered accounts, inspect user telemetry, and verify database integrity.
             </p>
           </div>
         </section>
 
         {/* Top KPIs */}
         <section className="admin-kpis-grid">
-          <div className="solis-card admin-kpi-card">
-            <Users size={22} className="text-solar" />
-            <strong className="kpi-num">{users.length}</strong>
-            <span className="kpi-desc">Total Registered Users</span>
+          <div className="admin-kpi-card">
+            <span className="admin-kpi-kicker">USER DIRECTORY</span>
+            <strong className="admin-kpi-val">{users.length}</strong>
+            <span className="admin-kpi-foot">Total registered accounts</span>
           </div>
 
-          <div className="solis-card admin-kpi-card">
-            <Database size={22} className="text-emerald" />
-            <strong className="kpi-num">Active</strong>
-            <span className="kpi-desc">Aiven MySQL Cluster</span>
+          <div className="admin-kpi-card">
+            <span className="admin-kpi-kicker">DATABASE CLUSTER</span>
+            <div className="status-row">
+              <span className="intel-pulse-dot" />
+              <strong className="admin-kpi-val text-emerald">Connected</strong>
+            </div>
+            <span className="admin-kpi-foot">Aiven MySQL Production</span>
           </div>
 
-          <div className="solis-card admin-kpi-card">
-            <ShieldCheck size={22} className="text-blue" />
-            <strong className="kpi-num">Admin Active</strong>
-            <span className="kpi-desc">Signed in as {user?.username}</span>
+          <div className="admin-kpi-card">
+            <span className="admin-kpi-kicker">AUTHENTICATED ADMIN</span>
+            <strong className="admin-kpi-val">{user?.username || 'SuperAdmin'}</strong>
+            <span className="admin-kpi-foot">Full access role granted</span>
           </div>
         </section>
 
         {/* User Management Table */}
         <section className="admin-table-section">
-          <div className="solis-card admin-table-card">
-            <div className="admin-table-header">
-              <div className="table-title-block">
-                <h3>User Management</h3>
-                <p>Directory of registered users on SolisIQ.</p>
+          <div className="editorial-archive-card admin-table-card">
+            <div className="archive-header-row">
+              <div className="archive-title-group">
+                <span className="card-mono-kicker">DIRECTORY CONTROL</span>
+                <h3 className="archive-title">User Accounts</h3>
+                <p className="archive-desc">Inspect registered accounts and manage platform permissions.</p>
               </div>
 
-              <div className="table-search-input">
-                <Search size={16} className="search-icon" />
+              <div className="table-search-wrap">
+                <Search size={14} className="search-icon" />
                 <input
                   type="text"
                   placeholder="Filter by name or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="solis-search-box"
+                  className="solis-search-input"
                 />
               </div>
             </div>
 
             {loading && (
-              <div className="history-loading-box">
+              <div className="editorial-loading-box">
                 <span className="solis-spinner" />
                 <p>Loading user directory...</p>
               </div>
             )}
 
             {error && (
-              <div className="solis-form-error">
+              <div className="editorial-form-error" role="alert">
                 <AlertCircle size={16} />
                 <span>{error}</span>
               </div>
             )}
 
             {!loading && !error && (
-              <div className="history-table-responsive">
-                <table className="solis-glass-table">
+              <div className="archive-table-container">
+                <table className="editorial-data-table admin-dense-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>User</th>
+                      <th>UID</th>
+                      <th>Username</th>
                       <th>Email</th>
-                      <th>Registration Date</th>
+                      <th>Registered On</th>
                       <th className="text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((u) => (
                       <tr key={u.id}>
-                        <td>#{u.id}</td>
+                        <td><span className="num-mono">#{u.id}</span></td>
                         <td>
-                          <div className="history-loc-cell">
-                            <User size={14} className="cell-icon" />
+                          <div className="archive-location-cell">
+                            <User size={13} className="cell-sub-icon" />
                             <strong>{u.username}</strong>
                           </div>
                         </td>
                         <td>
-                          <div className="history-date-cell">
-                            <Mail size={14} className="cell-icon" />
-                            <span>{u.email}</span>
-                          </div>
+                          <span className="archive-email-text">{u.email}</span>
                         </td>
                         <td>
-                          <div className="history-date-cell">
-                            <Calendar size={14} className="cell-icon" />
-                            <span>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</span>
-                          </div>
+                          <span className="archive-date-text">
+                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                          </span>
                         </td>
                         <td className="text-right">
                           <button
                             type="button"
-                            className="action-btn delete-btn"
+                            className="archive-action-btn delete"
                             onClick={() => handleDeleteUser(u.id)}
                             title="Delete User"
                           >
-                            <Trash2 size={14} />
-                            <span>Delete</span>
+                            <Trash2 size={13} />
+                            <span>Remove</span>
                           </button>
                         </td>
                       </tr>
                     ))}
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan="5" className="text-center" style={{ padding: '32px' }}>
-                          No users matched your search query.
+                        <td colSpan="5" className="text-center" style={{ padding: '40px', color: 'var(--dim)' }}>
+                          No users matched your query filter.
                         </td>
                       </tr>
                     )}
@@ -221,9 +220,9 @@ function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode })
 
       {/* Footer */}
       <footer className="solis-footer simple-footer">
-        <div className="footer-bottom-container">
-          <span>© 2026 SolisIQ Internal Admin Console. Restricted access.</span>
-          <div className="footer-legal-links">
+        <div className="footer-bottom-inner">
+          <span>© 2026 SolisIQ Internal Operations Console. Authorized administrators only.</span>
+          <div className="footer-legal-row">
             <Link to="/">Home</Link>
             <Link to="/calculator">Solar Calculator</Link>
           </div>

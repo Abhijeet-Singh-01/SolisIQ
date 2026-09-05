@@ -71,54 +71,56 @@ function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode })
         {/* Hero Section */}
         <section className="subsidy-hero-section">
           <div className="subsidy-header-inner">
-            <div className="calc-eyebrow">
-              <span className="eyebrow-dot" />
-              <ShieldCheck size={14} className="eyebrow-icon" />
-              <span>POLICY & INCENTIVE REPOSITORY</span>
+            <div className="calc-kicker-wrap">
+              <span className="kicker-dot" />
+              <span className="calc-mono-kicker">SUBSIDY DISCOVERY</span>
             </div>
-            <h1 className="subsidy-main-title">
+            <h1 className="subsidy-editorial-title">
               State & Central Subsidy Explorer
             </h1>
-            <p className="subsidy-subtext">
-              Calculate exact grant eligibility under PM Surya Ghar Muft Bijli Yojana and your State Solar Policy.
+            <p className="subsidy-editorial-desc">
+              Find incentives available for your solar installation under the PM Surya Ghar Scheme (Muft Bijli Yojana) and state renewable directives.
             </p>
           </div>
         </section>
 
         {/* Subsidy Interactive Calculator Card */}
         <section className="subsidy-tool-section">
-          <div className="subsidy-glass-card">
+          <div className="subsidy-editorial-card">
             {/* Left Controls */}
             <div className="subsidy-controls-col">
               <div className="tool-block-header">
-                <Building size={20} className="text-solar" />
-                <h3>Select Your Parameters</h3>
+                <span className="tool-mono-kicker">PARAMETERS</span>
+                <h3 className="tool-title">Installation Profile</h3>
               </div>
 
               {/* State Dropdown */}
-              <div className="form-group">
-                <label htmlFor="state-picker">
-                  <span>State / Union Territory</span>
+              <div className="form-field-group">
+                <label htmlFor="state-picker" className="field-label">
+                  State / Union Territory
                 </label>
-                <select
-                  id="state-picker"
-                  value={selectedState}
-                  onChange={(e) => setSelectedState(e.target.value)}
-                  className="solis-select"
-                >
-                  {Object.keys(stateSubsidies).map((st) => (
-                    <option key={st} value={st}>
-                      {st} ({stateSubsidies[st].statePct}% State Subsidy)
-                    </option>
-                  ))}
-                </select>
+                <div className="input-affix-wrap">
+                  <Building size={16} className="input-icon" />
+                  <select
+                    id="state-picker"
+                    value={selectedState}
+                    onChange={(e) => setSelectedState(e.target.value)}
+                    className="solis-editorial-select"
+                  >
+                    {Object.keys(stateSubsidies).map((st) => (
+                      <option key={st} value={st}>
+                        {st} ({stateSubsidies[st].statePct}% State Subsidy)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Capacity Slider */}
-              <div className="form-group slider-group">
+              <div className="form-field-group">
                 <div className="slider-label-row">
-                  <span>Rooftop System Capacity</span>
-                  <strong className="slider-val-highlight">{Number(systemCapacity).toFixed(1)} kW</strong>
+                  <span className="field-label">Rooftop System Capacity</span>
+                  <strong className="slider-val-readout">{Number(systemCapacity).toFixed(1)} kW</strong>
                 </div>
                 <input
                   type="range"
@@ -129,7 +131,7 @@ function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode })
                   onChange={(e) => setSystemCapacity(Number(e.target.value))}
                   className="solis-range-slider"
                 />
-                <div className="sim-slider-ticks">
+                <div className="sim-slider-benchmarks">
                   <span>1.0 kW</span>
                   <span>5.0 kW</span>
                   <span>10.0 kW</span>
@@ -137,10 +139,10 @@ function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode })
               </div>
 
               {/* State Policy Note Card */}
-              <div className="state-policy-note-card">
+              <div className="state-policy-editorial-note">
                 <div className="note-head">
-                  <Award size={16} className="text-solar" />
-                  <strong>{selectedState} Solar Policy Overview</strong>
+                  <Award size={15} className="text-solar" />
+                  <strong>{selectedState} Policy Summary</strong>
                 </div>
                 <p>{currentInfo.note}</p>
               </div>
@@ -151,50 +153,52 @@ function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode })
                 onClick={() => navigate('/calculator')}
               >
                 <span>Calculate My Rooftop with Subsidies</span>
-                <ArrowRight size={16} />
+                <ArrowRight size={15} />
               </button>
             </div>
 
             {/* Right Financial Breakdown */}
             <div className="subsidy-breakdown-col">
-              <div className="breakdown-head">
-                <span className="breakdown-eyebrow">ESTIMATED FINANCIAL SUPPORT</span>
-                <h3 className="breakdown-title">Net Financial Investment</h3>
+              <div className="breakdown-header-block">
+                <span className="card-mono-kicker">FINANCIAL BREAKDOWN</span>
+                <h3 className="breakdown-editorial-title">Capital Support & Net Financial Investment</h3>
               </div>
 
-              <div className="breakdown-kpi-grid">
-                <div className="breakdown-card">
-                  <span className="b-label">Gross Benchmark Cost</span>
-                  <strong className="b-val">₹{grossCost.toLocaleString('en-IN')}</strong>
-                  <span className="b-sub">@ ₹60,000 / kW benchmark</span>
+              <div className="breakdown-editorial-grid">
+                <div className="breakdown-stat-cell">
+                  <span className="b-kicker">GROSS BENCHMARK COST</span>
+                  <strong className="b-number">₹{grossCost.toLocaleString('en-IN')}</strong>
+                  <span className="b-footnote">@ ₹60,000 / kW benchmark</span>
                 </div>
 
-                <div className="breakdown-card green">
-                  <span className="b-label">Central Grant (DBT)</span>
-                  <strong className="b-val">₹{centralSubsidy.toLocaleString('en-IN')}</strong>
-                  <span className="b-sub">PM Surya Ghar Scheme</span>
+                <div className="breakdown-stat-cell green">
+                  <span className="b-kicker">CENTRAL DBT GRANT</span>
+                  <strong className="b-number">₹{centralSubsidy.toLocaleString('en-IN')}</strong>
+                  <span className="b-footnote">PM Surya Ghar Yojana</span>
                 </div>
 
-                <div className="breakdown-card green">
-                  <span className="b-label">State Incentive</span>
-                  <strong className="b-val">₹{stateSubsidyAmount.toLocaleString('en-IN')}</strong>
-                  <span className="b-sub">{currentInfo.statePct}% state scheme</span>
+                <div className="breakdown-stat-cell green">
+                  <span className="b-kicker">STATE CAPITAL INCENTIVE</span>
+                  <strong className="b-number">₹{stateSubsidyAmount.toLocaleString('en-IN')}</strong>
+                  <span className="b-footnote">{currentInfo.statePct}% state scheme</span>
                 </div>
 
-                <div className="breakdown-card highlight">
-                  <span className="b-label">Total Subsidy Support</span>
-                  <strong className="b-val">₹{totalSubsidies.toLocaleString('en-IN')}</strong>
-                  <span className="b-sub">{effectiveSubsidyPercent}% total savings</span>
+                <div className="breakdown-stat-cell highlight">
+                  <span className="b-kicker">TOTAL SUBSIDY SAVINGS</span>
+                  <strong className="b-number">₹{totalSubsidies.toLocaleString('en-IN')}</strong>
+                  <span className="b-footnote">{effectiveSubsidyPercent}% upfront discount</span>
                 </div>
               </div>
 
               {/* Net Consumer Cost Banner */}
-              <div className="net-cost-highlight-banner">
+              <div className="net-outlay-banner">
                 <div>
-                  <span className="net-label">FINAL NET OUT-OF-POCKET COST</span>
-                  <strong className="net-price">₹{netConsumerCost.toLocaleString('en-IN')}</strong>
+                  <span className="net-kicker">FINAL NET OUT-OF-POCKET OUTLAY</span>
+                  <strong className="net-big-price">₹{netConsumerCost.toLocaleString('en-IN')}</strong>
                 </div>
-                <span className="net-tag">{effectiveSubsidyPercent}% Discount</span>
+                <div className="net-savings-badge">
+                  <span>{effectiveSubsidyPercent}% Government Supported</span>
+                </div>
               </div>
             </div>
           </div>
@@ -203,12 +207,12 @@ function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode })
 
       {/* Footer */}
       <footer className="solis-footer simple-footer">
-        <div className="footer-bottom-container">
+        <div className="footer-bottom-inner">
           <span>© 2026 SolisIQ Technologies Inc. All government scheme data verified.</span>
-          <div className="footer-legal-links">
+          <div className="footer-legal-row">
             <Link to="/">Home</Link>
             <Link to="/calculator">Solar Calculator</Link>
-            <Link to="/login">Login</Link>
+            <Link to="/login">Sign In</Link>
           </div>
         </div>
       </footer>

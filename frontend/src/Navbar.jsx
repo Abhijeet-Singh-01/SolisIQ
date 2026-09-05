@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Sun, Moon, Menu, X, ArrowRight, Sparkles, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, Menu, X, ArrowRight, User, LogOut, ShieldCheck } from 'lucide-react';
 
 function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -10,7 +10,7 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
+      if (window.scrollY > 16) {
         setScrolled(true);
       } else {
         setScrolled(false);
@@ -20,7 +20,6 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
@@ -42,41 +41,45 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
     <header className={`solis-navbar-wrap ${scrolled ? 'is-scrolled' : ''}`}>
       <div className="solis-navbar">
         {/* Brand */}
-        <Link to="/" className="solis-brand">
-          <div className="solis-logo-icon">
-            <Sun className="brand-sun-icon" size={20} />
-            <div className="brand-sun-glow" />
-          </div>
-          <div className="brand-text-block">
-            <span className="brand-title">SolisIQ</span>
-            <span className="brand-badge">AI</span>
-          </div>
+        <Link to="/" className="solis-brand" aria-label="SolisIQ Home">
+          <span className="brand-dot" aria-hidden="true" />
+          <span className="brand-title">SolisIQ</span>
+          <span className="brand-mono-badge">AI</span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className="solis-nav-links">
-          <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+        {/* Center Editorial Navigation */}
+        <nav className="solis-nav-links" aria-label="Main Navigation">
+          <Link
+            to="/"
+            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+          >
             Home
           </Link>
-          <Link to="/calculator" className={`nav-link ${location.pathname === '/calculator' ? 'active' : ''}`}>
+          <Link
+            to="/calculator"
+            className={`nav-link ${location.pathname === '/calculator' ? 'active' : ''}`}
+          >
             Solar Advisor
+          </Link>
+          <Link
+            to="/subsidy-checker"
+            className={`nav-link ${location.pathname === '/subsidy-checker' ? 'active' : ''}`}
+          >
+            Subsidies
           </Link>
           <button
             type="button"
             onClick={() => handleNavClick('#how-it-works')}
             className="nav-link nav-btn-link"
           >
-            How It Works
+            Methodology
           </button>
-          <Link to="/subsidy-checker" className={`nav-link ${location.pathname === '/subsidy-checker' ? 'active' : ''}`}>
-            Subsidies
-          </Link>
           <button
             type="button"
-            onClick={() => handleNavClick('#community')}
+            onClick={() => handleNavClick('#workflow')}
             className="nav-link nav-btn-link"
           >
-            Community
+            Intelligence
           </button>
         </nav>
 
@@ -85,24 +88,25 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
           {toggleDarkMode && (
             <button
               type="button"
-              className="solis-icon-btn theme-toggle-btn"
+              className="theme-toggle-btn"
               onClick={toggleDarkMode}
               aria-label="Toggle theme"
               title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+              {darkMode ? <Sun size={15} /> : <Moon size={15} />}
             </button>
           )}
 
           {token ? (
-            <div className="user-menu-pill">
-              <Link to="/dashboard" className="user-link">
-                <User size={15} />
-                <span>{user?.username || 'Dashboard'}</span>
+            <div className="user-nav-group">
+              <Link to="/calculator" className="user-pill-link" title="Open Solar Dashboard">
+                <User size={14} />
+                <span>{user?.username || 'Console'}</span>
               </Link>
               {user?.isAdmin && (
-                <Link to="/admin/dashboard" className="admin-chip" title="Admin Dashboard">
+                <Link to="/admin/dashboard" className="admin-pill-link" title="Admin Console">
                   <ShieldCheck size={14} />
+                  <span>Admin</span>
                 </Link>
               )}
               {onLogout && (
@@ -110,25 +114,25 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
                   type="button"
                   onClick={onLogout}
                   className="nav-logout-btn"
-                  title="Logout"
-                  aria-label="Logout"
+                  title="Sign out"
+                  aria-label="Sign out"
                 >
-                  <LogOut size={15} />
+                  <LogOut size={14} />
                 </button>
               )}
             </div>
           ) : (
-            <div className="guest-actions">
-              <Link to="/login" className="nav-login-link">
-                Login
+            <div className="guest-nav-group">
+              <Link to="/login" className="nav-text-link">
+                Sign in
               </Link>
               <button
                 type="button"
                 className="solis-btn solis-btn-primary nav-cta-btn"
                 onClick={() => navigate('/calculator')}
               >
-                <span>Get Started</span>
-                <ArrowRight size={14} />
+                <span>Explore Solar Potential</span>
+                <ArrowRight size={13} />
               </button>
             </div>
           )}
@@ -139,66 +143,73 @@ function Navbar({ token, user, onLogout, darkMode, toggleDarkMode }) {
             className="solis-hamburger-btn"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
         <div className="solis-mobile-menu">
           <Link to="/" className="mobile-nav-link">
             Home
           </Link>
           <Link to="/calculator" className="mobile-nav-link">
-            Solar Advisor Calculator
+            Solar Advisor
+          </Link>
+          <Link to="/subsidy-checker" className="mobile-nav-link">
+            State Subsidies
           </Link>
           <button
             type="button"
             onClick={() => handleNavClick('#how-it-works')}
             className="mobile-nav-link mobile-btn-link"
           >
-            How It Works
+            Methodology
           </button>
-          <Link to="/subsidy-checker" className="mobile-nav-link">
-            State Subsidies
-          </Link>
           <button
             type="button"
-            onClick={() => handleNavClick('#community')}
+            onClick={() => handleNavClick('#workflow')}
             className="mobile-nav-link mobile-btn-link"
           >
-            Community Insights
+            Intelligence
           </button>
 
           <div className="mobile-menu-divider" />
 
           {token ? (
             <div className="mobile-user-actions">
-              <Link to="/dashboard" className="mobile-nav-link highlight">
-                <User size={16} />
-                <span>Dashboard ({user?.username})</span>
+              <Link to="/calculator" className="mobile-nav-link highlight">
+                <User size={15} />
+                <span>Console ({user?.username})</span>
               </Link>
+              {user?.isAdmin && (
+                <Link to="/admin/dashboard" className="mobile-nav-link">
+                  <ShieldCheck size={15} />
+                  <span>Admin Console</span>
+                </Link>
+              )}
               {onLogout && (
                 <button type="button" onClick={onLogout} className="mobile-logout-btn">
-                  <LogOut size={16} />
-                  <span>Logout</span>
+                  <LogOut size={15} />
+                  <span>Sign out</span>
                 </button>
               )}
             </div>
           ) : (
             <div className="mobile-auth-actions">
               <Link to="/login" className="solis-btn solis-btn-ghost mobile-btn">
-                Login
+                Sign In
               </Link>
               <button
                 type="button"
                 className="solis-btn solis-btn-primary mobile-btn"
                 onClick={() => navigate('/calculator')}
               >
-                <span>Analyze Rooftop</span>
-                <ArrowRight size={15} />
+                <span>Explore Solar Potential</span>
+                <ArrowRight size={14} />
               </button>
             </div>
           )}

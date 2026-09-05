@@ -85,21 +85,20 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
         <section className="calc-page-header">
           <div className="calc-header-inner">
             <div className="calc-title-box">
-              <div className="calc-eyebrow">
-                <span className="eyebrow-dot" />
-                <Sparkles size={14} className="eyebrow-icon" />
-                <span>AI SOLAR ADVISOR & CALCULATOR</span>
+              <div className="calc-kicker-wrap">
+                <span className="kicker-dot" />
+                <span className="calc-mono-kicker">AI SOLAR ADVISOR & CALCULATOR</span>
               </div>
-              <h1 className="calc-main-title">
+              <h1 className="calc-editorial-title">
                 Rooftop Solar Intelligence
               </h1>
-              <p className="calc-subtext">
+              <p className="calc-editorial-desc">
                 Enter your power consumption and rooftop dimensions to generate a precision machine learning forecast.
               </p>
             </div>
 
-            <div className="calc-header-badge">
-              <span className="pulse-indicator" />
+            <div className="calc-telemetry-badge">
+              <span className="intel-pulse-dot" />
               <span>Real-time Satellite Irradiance Connected</span>
             </div>
           </div>
@@ -135,9 +134,9 @@ function DashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
 
       {/* Footer */}
       <footer className="solis-footer simple-footer">
-        <div className="footer-bottom-container">
+        <div className="footer-bottom-inner">
           <span>© 2026 SolisIQ Technologies Inc. Solar Intelligence Engine.</span>
-          <div className="footer-legal-links">
+          <div className="footer-legal-row">
             <Link to="/">Home</Link>
             <Link to="/subsidy-checker">Subsidies</Link>
             <a href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a>

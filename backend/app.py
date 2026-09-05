@@ -30,7 +30,8 @@ import mysql.connector
 app = Flask(__name__)
 
 # Load environment variables from the single root .env file
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname
+                           (os.path.abspath(__file__)))
 ROOT_ENV_PATH = os.path.join(ROOT_DIR, ".env")
 
 if load_dotenv is not None:
@@ -77,9 +78,9 @@ DB_USER = (os.getenv("DB_USER") or "root").strip()
 DB_PASSWORD = (os.getenv("DB_PASSWORD") or "").strip()
 DB_NAME = (os.getenv("DB_NAME") or "solar_advisor").strip()
 try:
-    DB_CONNECTION_TIMEOUT = int(str(os.getenv("DB_CONNECTION_TIMEOUT", "5")).strip())
+    DB_CONNECTION_TIMEOUT = int(str(os.getenv("DB_CONNECTION_TIMEOUT", "10")).strip())
 except (ValueError, TypeError):
-    DB_CONNECTION_TIMEOUT = 5
+    DB_CONNECTION_TIMEOUT = 10
 USE_SSL = (
     str(os.getenv("USE_SSL") or os.getenv("DB_SSL") or "true").strip().lower()
     in ("true", "1", "yes")
@@ -104,7 +105,7 @@ DB_CONFIG = {
     "database": DB_NAME,
     "charset": "utf8mb4",
     "autocommit": True,
-    "connection_timeout": min(DB_CONNECTION_TIMEOUT, 2),
+    "connection_timeout": max(DB_CONNECTION_TIMEOUT, 5),
 }
 
 # Add SSL configuration for Aiven (required by Aiven for remote connections)
@@ -467,6 +468,12 @@ def get_average_monthly_weather():
 def home():
     # Simple health check route for the backend.
     return jsonify({"message": "SolisIQ backend is running"})
+
+
+@app.get("/health")
+def health():
+    # Health check endpoint for Render and monitoring.
+    return jsonify({"status": "ok"})
 
 
 @app.get("/weather")
@@ -1077,16 +1084,20 @@ def calculate_roi():
 
     return jsonify(
         {
+            "system_size": round(required_capacity_kw, 2),
             "recommended_capacity_kw": round(required_capacity_kw, 2),
             "required_panel_capacity_kw": round(installed_capacity_kw, 2),
             "system_cost": round(system_cost, 2),
             "monthly_units_kwh": round(monthly_units_kwh, 2),
             "annual_savings": round(annual_savings, 2),
+            "annual_generation": round(installed_capacity_kw * 120.0 * 12.0, 2),
             "lifetime_savings_25_years": round(lifetime_savings_25_years, 2),
             "roi_percent": round(roi_percent, 2),
+            "panel_count": number_of_panels,
             "number_of_panels": number_of_panels,
             "roof_area_required_sq_ft": round(roof_area_required_sq_ft, 1),
             "estimated_monthly_savings": round(estimated_monthly_savings, 2),
+            "payback_period": round(payback_years, 2),
             "payback_period_years": round(payback_years, 2),
             "state_subsidy_percent": subsidy_percent,
         }

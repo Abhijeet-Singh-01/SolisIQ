@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from './Navbar';
+import SolarIntelligenceFlow from './SolarIntelligenceFlow';
 import API_BASE_URL from './apiConfig';
 import {
   Sun,
@@ -8,19 +9,11 @@ import {
   TrendingUp,
   ShieldCheck,
   Leaf,
-  Sparkles,
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
-  Award,
-  CheckCircle2,
   Cpu,
-  Compass,
-  FileText,
-  Flame,
-  Globe2,
-  Clock,
   Layers,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   BarChart,
@@ -42,17 +35,45 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
   const [communityLoading, setCommunityLoading] = useState(true);
   const [communityError, setCommunityError] = useState('');
 
-  // Interactive Live Simulator on Homepage
-  const [simulatedBill, setSimulatedBill] = useState(3200);
+  // Interactive Live Simulator State
+  const [simulatedBill, setSimulatedBill] = useState(3500);
+  const [simulatedArea, setSimulatedArea] = useState(650);
   const [simulatedState, setSimulatedState] = useState('Delhi');
 
-  // Compute live simulated preview
-  const simCapacityKw = Math.max(1, (simulatedBill / 7 / 30 / 4)).toFixed(1);
-  const simAnnualSavings = Math.round((simulatedBill * 0.95) * 12);
-  const simPaybackYears = (simCapacityKw * 60000 / (simAnnualSavings || 1)).toFixed(1);
-  const simCo2Kg = Math.round(simCapacityKw * 120 * 12 * 0.82);
+  // Compute live simulated values
+  const simCapacityKw = useMemo(() => {
+    const raw = simulatedBill / 7 / 30 / 4;
+    return Math.max(1.2, Math.min(25, Number(raw.toFixed(1))));
+  }, [simulatedBill]);
 
-  // Fetch real model performance comparison & community statistics
+  const simAnnualSavings = useMemo(() => {
+    return Math.round(simulatedBill * 0.95 * 12);
+  }, [simulatedBill]);
+
+  const simPaybackYears = useMemo(() => {
+    const cost = simCapacityKw * 60000;
+    const years = (cost / (simAnnualSavings || 1)).toFixed(1);
+    return Math.max(3.2, Math.min(8.5, Number(years)));
+  }, [simCapacityKw, simAnnualSavings]);
+
+  const simCo2Kg = useMemo(() => {
+    return Math.round(simCapacityKw * 120 * 12 * 0.82);
+  }, [simCapacityKw]);
+
+  const simPanelCount = useMemo(() => {
+    return Math.max(4, Math.ceil(simCapacityKw / 0.4));
+  }, [simCapacityKw]);
+
+  // Live values payload for SolarIntelligenceFlow synchronization
+  const simLiveValues = useMemo(() => ({
+    dailyGeneration: (simCapacityKw * 4.2).toFixed(1),
+    greenOffset: '100',
+    annualSavings: simAnnualSavings,
+    systemSize: simCapacityKw.toFixed(1),
+    paybackPeriod: simPaybackYears.toFixed(1),
+    co2Tonnes: (simCo2Kg / 1000).toFixed(1),
+  }), [simCapacityKw, simAnnualSavings, simPaybackYears, simCo2Kg]);
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -113,14 +134,11 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
 
   return (
     <div className="solis-page-wrapper">
-      {/* Background ambient lighting layer (strictly positioned in background) */}
       <div className="solis-ambient-container" aria-hidden="true">
         <div className="ambient-glow glow-top" />
         <div className="ambient-glow glow-right" />
-        <div className="ambient-glow glow-bottom" />
       </div>
 
-      {/* Shared Glass Navbar at TOP */}
       <Navbar
         token={token}
         user={user}
@@ -130,571 +148,567 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
       />
 
       <main className="solis-main-content">
-        {/* ======================================================== */}
-        {/* HERO SECTION — FIRST VIEWPORT (IMMEDIATELY VISIBLE)       */}
-        {/* ======================================================== */}
+        {/* 1. HERO SECTION */}
         <section className="solis-hero-section">
-          <div className="hero-grid-backdrop" />
-
-          <div className="solis-hero-container">
-            {/* Left Column: Headline & Action */}
-            <div className="hero-left-column">
-              <div className="hero-eyebrow-pill">
-                <span className="eyebrow-dot" />
-                <Sparkles size={13} className="eyebrow-icon" />
-                <span>AI-POWERED SOLAR INTELLIGENCE</span>
+          <div className="hero-editorial-grid">
+            <div className="hero-copy-column">
+              <div className="hero-kicker-wrap">
+                <span className="kicker-dot" aria-hidden="true" />
+                <span className="hero-kicker">AI-POWERED SOLAR PLANNING</span>
               </div>
 
-              <h1 className="hero-main-title">
-                TURN YOUR <br />
-                <span className="title-gradient-solar">ROOFTOP INTO</span> <br />
-                SMART ENERGY.
+              <h1 className="hero-editorial-title">
+                Know what your <br />
+                <span className="hero-title-accent">roof can generate.</span>
               </h1>
 
-              <p className="hero-subtext">
-                Discover your solar potential, estimate savings, calculate payback, and
-                understand your environmental impact in seconds using precision machine learning.
+              <p className="hero-editorial-desc">
+                SolisIQ turns rooftop, weather, energy, and financial data into a clear solar recommendation for your home.
               </p>
 
-              <div className="hero-cta-group">
+              <div className="hero-action-group">
                 <button
                   type="button"
-                  className="solis-btn solis-btn-primary hero-btn"
+                  className="solis-btn solis-btn-primary hero-cta-btn"
                   onClick={() => navigate('/calculator')}
                 >
-                  <Flame size={18} />
-                  <span>ANALYZE MY SOLAR POTENTIAL</span>
-                  <ArrowRight size={16} />
+                  <span>Explore Solar Potential</span>
+                  <ArrowRight size={15} />
                 </button>
 
                 <button
                   type="button"
-                  className="solis-btn solis-btn-secondary hero-btn-secondary"
+                  className="solis-ghost-link"
                   onClick={() => {
                     const el = document.getElementById('how-it-works');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
-                  <Compass size={18} />
-                  <span>EXPLORE SOLISIQ</span>
+                  <span>How SolisIQ Works</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
 
-              {/* Trust & Model Precision Indicators */}
-              <div className="hero-trust-row">
-                <div className="trust-item">
-                  <span className="trust-val">99.4%</span>
-                  <span className="trust-lbl">AI Precision</span>
+              <div className="hero-telemetry-row">
+                <div className="telemetry-block">
+                  <span className="telemetry-num">99.4%</span>
+                  <span className="telemetry-lbl">Model Precision</span>
                 </div>
-                <div className="trust-divider" />
-                <div className="trust-item">
-                  <span className="trust-val">₹0 Free</span>
-                  <span className="trust-lbl">Instant Analysis</span>
+                <div className="telemetry-separator" aria-hidden="true" />
+                <div className="telemetry-block">
+                  <span className="telemetry-num">Live</span>
+                  <span className="telemetry-lbl">Open-Meteo Irradiance</span>
                 </div>
-                <div className="trust-divider" />
-                <div className="trust-item">
-                  <span className="trust-val">Open-Meteo</span>
-                  <span className="trust-lbl">Live Radiation</span>
+                <div className="telemetry-separator" aria-hidden="true" />
+                <div className="telemetry-block">
+                  <span className="telemetry-num">₹78,000</span>
+                  <span className="telemetry-lbl">Max PM Surya Subsidy</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Futuristic Solar Hub Infographic */}
-            <div className="hero-right-column">
-              <div className="solar-energy-hub-card">
-                <div className="hub-header">
-                  <div className="hub-status-badge">
-                    <span className="pulse-indicator" />
-                    <span>SOLAR INTELLIGENCE FLOW</span>
-                  </div>
-                  <span className="hub-tag">v2.4 Neural Model</span>
-                </div>
-
-                {/* Central Solar Energy Flow Infographic */}
-                <div className="energy-flow-visualizer">
-                  <div className="flow-node node-rooftop">
-                    <div className="node-icon-wrap">
-                      <Sun size={20} />
-                    </div>
-                    <div className="node-text">
-                      <span className="node-step">01. ROOFTOP</span>
-                      <strong className="node-val">Solar Ingestion</strong>
-                    </div>
-                  </div>
-
-                  <div className="flow-connector">
-                    <div className="connector-pulse-line" />
-                    <span className="flow-particle" />
-                  </div>
-
-                  <div className="flow-node node-generation">
-                    <div className="node-icon-wrap">
-                      <Cpu size={20} />
-                    </div>
-                    <div className="node-text">
-                      <span className="node-step">02. ML FORECAST</span>
-                      <strong className="node-val">4.8 kWh / day</strong>
-                    </div>
-                  </div>
-
-                  <div className="flow-connector">
-                    <div className="connector-pulse-line" />
-                    <span className="flow-particle" />
-                  </div>
-
-                  <div className="flow-node node-energy">
-                    <div className="node-icon-wrap">
-                      <Zap size={20} />
-                    </div>
-                    <div className="node-text">
-                      <span className="node-step">03. CLEAN ENERGY</span>
-                      <strong className="node-val">100% Green Offset</strong>
-                    </div>
-                  </div>
-
-                  <div className="flow-connector">
-                    <div className="connector-pulse-line" />
-                    <span className="flow-particle" />
-                  </div>
-
-                  <div className="flow-node node-savings">
-                    <div className="node-icon-wrap">
-                      <TrendingUp size={20} />
-                    </div>
-                    <div className="node-text">
-                      <span className="node-step">04. SAVINGS</span>
-                      <strong className="node-val">₹1,48,140 / yr</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Metric Chips */}
-                <div className="hub-floating-metrics">
-                  <div className="floating-metric-chip highlight-chip">
-                    <span className="chip-label">Recommended System</span>
-                    <strong className="chip-value">14.7 kW</strong>
-                  </div>
-                  <div className="floating-metric-chip">
-                    <span className="chip-label">Payback Period</span>
-                    <strong className="chip-value">5.4 Years</strong>
-                  </div>
-                  <div className="floating-metric-chip green-chip">
-                    <span className="chip-label">CO₂ Reduction</span>
-                    <strong className="chip-value">3.2 Tonnes/yr</strong>
-                  </div>
+            <div className="hero-visual-column">
+              <div className="hero-visual-card">
+                <div className="hero-visual-img-wrap">
+                  <img
+                    src="/assets/hero-rooftop.jpg"
+                    alt="High-angle aerial photograph of a modern residential home with integrated rooftop monocrystalline solar panels in warm natural daylight"
+                    className="hero-cinematic-img"
+                    loading="eager"
+                  />
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 2: SOLAR INTELLIGENCE, SIMPLIFIED                 */}
-        {/* ======================================================== */}
-        <section id="how-it-works" className="solis-section how-it-works-section">
-          <div className="section-header text-center">
-            <span className="section-eyebrow">THE SOLISIQ METHOD</span>
-            <h2 className="section-title">Solar Intelligence, Simplified</h2>
-            <p className="section-subtitle">
-              From raw rooftop satellite coordinates to precision financial payback models in four streamlined steps.
+        {/* 2. SOLAR INTELLIGENCE FLOW (DARK WORKFLOW) */}
+        <section id="workflow" className="solis-section workflow-showcase-section">
+          <div className="workflow-intro-head">
+            <div className="workflow-kicker-wrap">
+              <span className="kicker-dot" aria-hidden="true" />
+              <span className="section-mono-kicker">HOW SOLISIQ THINKS</span>
+            </div>
+            <h2 className="section-editorial-title">
+              From rooftop data <br />
+              to a solar decision.
+            </h2>
+            <p className="section-editorial-sub">
+              SolisIQ combines rooftop information, weather data, energy forecasting, financial modeling, and environmental impact into one clear recommendation.
             </p>
           </div>
 
-          <div className="steps-grid-container">
-            <div className="step-card">
-              <div className="step-card-header">
-                <span className="step-index">01</span>
-                <div className="step-icon-bubble">
-                  <Compass size={20} />
-                </div>
-              </div>
-              <h3 className="step-card-title">Tell us about your home</h3>
-              <p className="step-card-desc">
-                Input your city, monthly electricity expenditure, and estimated rooftop square footage.
-              </p>
-              <div className="step-card-footer">
-                <span>Location + Energy Bill</span>
-              </div>
-            </div>
-
-            <div className="step-card active-card">
-              <div className="step-card-header">
-                <span className="step-index">02</span>
-                <div className="step-icon-bubble">
-                  <Cpu size={20} />
-                </div>
-              </div>
-              <h3 className="step-card-title">AI analyzes solar potential</h3>
-              <p className="step-card-desc">
-                Our Random Forest model processes Open-Meteo solar irradiance, cloud cover, and temperature data.
-              </p>
-              <div className="step-card-footer">
-                <span>Machine Learning Forecast</span>
-              </div>
-            </div>
-
-            <div className="step-card">
-              <div className="step-card-header">
-                <span className="step-index">03</span>
-                <div className="step-icon-bubble">
-                  <TrendingUp size={20} />
-                </div>
-              </div>
-              <h3 className="step-card-title">See your financial impact</h3>
-              <p className="step-card-desc">
-                Review your net monthly savings, 25-year cumulative wealth gains, and break-even payback horizon.
-              </p>
-              <div className="step-card-footer">
-                <span>ROI & Subsidies Included</span>
-              </div>
-            </div>
-
-            <div className="step-card">
-              <div className="step-card-header">
-                <span className="step-index">04</span>
-                <div className="step-icon-bubble">
-                  <Award size={20} />
-                </div>
-              </div>
-              <h3 className="step-card-title">Make a smarter decision</h3>
-              <p className="step-card-desc">
-                Export an official PDF report complete with rooftop solar matrix and environmental tree offsets.
-              </p>
-              <div className="step-card-footer">
-                <span>Print-Ready Executive Report</span>
-              </div>
-            </div>
+          <div className="workflow-embed-container">
+            <SolarIntelligenceFlow
+              liveValues={simLiveValues}
+              onExplore={() => navigate('/calculator')}
+              interactive={true}
+            />
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 3: INTERACTIVE CALCULATOR PREVIEW / SIMULATOR     */}
-        {/* ======================================================== */}
-        <section className="solis-section simulator-section">
-          <div className="simulator-glass-card">
-            <div className="simulator-left">
-              <span className="section-eyebrow">INSTANT SIMULATOR</span>
-              <h2 className="simulator-title">Test Your Solar ROI Live</h2>
-              <p className="simulator-desc">
-                Slide your current monthly power bill to preview how much money you can stop burning on grid tariffs.
-              </p>
+        {/* 3. ROOFTOP INTELLIGENCE (DYNAMIC ARCHITECTURAL ARRAY) */}
+        <section className="solis-section rooftop-intelligence-section">
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">ROOFTOP INTELLIGENCE</span>
+            <h2 className="section-editorial-title">Your rooftop, analyzed.</h2>
+            <p className="section-editorial-sub">
+              Every roof is unique. SolisIQ maps usable surface area, tilt, and sun azimuth to configure an optimal photovoltaic array.
+            </p>
+          </div>
 
-              {/* Slider Control */}
-              <div className="sim-control-block">
-                <div className="sim-control-label-row">
-                  <span>Monthly Electricity Bill</span>
-                  <strong className="sim-bill-display">₹{Number(simulatedBill).toLocaleString('en-IN')}</strong>
-                </div>
-                <input
-                  type="range"
-                  min="800"
-                  max="15000"
-                  step="200"
-                  value={simulatedBill}
-                  onChange={(e) => setSimulatedBill(Number(e.target.value))}
-                  className="solis-range-slider"
-                />
-                <div className="sim-slider-ticks">
-                  <span>₹800/mo</span>
-                  <span>₹7,500/mo</span>
-                  <span>₹15,000/mo</span>
-                </div>
+          <div className="rooftop-editorial-display-card">
+            <div className="display-card-top-bar">
+              <div className="top-bar-specs">
+                <span className="spec-item-badge">
+                  <strong>{simCapacityKw} kW</strong> System Size
+                </span>
+                <span className="spec-item-badge">
+                  <strong>{simPanelCount} Panels</strong> Monocrystalline
+                </span>
+                <span className="spec-item-badge">
+                  <strong>{simPanelCount * 20} sq ft</strong> Array Footprint
+                </span>
+                <span className="spec-item-badge">
+                  <strong>{simulatedArea} sq ft</strong> Usable Roof
+                </span>
               </div>
+              <div className="top-bar-status">
+                <span className="status-live-dot" aria-hidden="true" />
+                <span>Dynamic Rooftop Simulation</span>
+              </div>
+            </div>
 
-              {/* State select */}
-              <div className="sim-state-row">
-                <label>
-                  <span>Select State for Subsidies:</span>
-                  <select
-                    value={simulatedState}
-                    onChange={(e) => setSimulatedState(e.target.value)}
-                    className="sim-select"
+            {/* Dynamic Solar Panel Layout Grid (Never Hardcoded) */}
+            <div className="home-rooftop-canvas">
+              <div className="home-panels-grid">
+                {Array.from({ length: simPanelCount }, (_, i) => (
+                  <div
+                    key={i + 1}
+                    className="home-panel-cell"
+                    title={`Module #${i + 1} • 400W Monocrystalline`}
                   >
-                    <option value="Delhi">Delhi (40% Subsidy)</option>
-                    <option value="Gujarat">Gujarat (40% Subsidy)</option>
-                    <option value="Rajasthan">Rajasthan (30% Subsidy)</option>
-                    <option value="Tamil Nadu">Tamil Nadu (25% Subsidy)</option>
-                    <option value="Maharashtra">Maharashtra (20% Subsidy)</option>
-                    <option value="Karnataka">Karnataka (20% Subsidy)</option>
-                    <option value="Uttar Pradesh">Uttar Pradesh (15% Subsidy)</option>
-                    <option value="Punjab">Punjab (20% Subsidy)</option>
-                  </select>
-                </label>
+                    <div className="panel-grid-lines" />
+                    <span className="panel-num">#{i + 1}</span>
+                  </div>
+                ))}
               </div>
+            </div>
 
+            <div className="display-card-foot-bar">
+              <span>Architectural rendering scaled to {simPanelCount} active solar modules.</span>
               <button
                 type="button"
-                className="solis-btn solis-btn-primary"
+                className="solis-btn solis-btn-secondary btn-sm"
                 onClick={() => navigate('/calculator')}
               >
-                <span>Launch Full Precision Calculator</span>
-                <ArrowRight size={16} />
+                <span>Customize in Solar Advisor</span>
+                <ArrowRight size={13} />
               </button>
-            </div>
-
-            {/* Live Outputs */}
-            <div className="simulator-right">
-              <div className="sim-outputs-grid">
-                <div className="sim-output-card highlight">
-                  <span className="sim-out-label">Estimated Annual Savings</span>
-                  <strong className="sim-out-val">₹{simAnnualSavings.toLocaleString('en-IN')}</strong>
-                  <span className="sim-out-sub">₹{(simAnnualSavings * 25).toLocaleString('en-IN')} over 25 yrs</span>
-                </div>
-
-                <div className="sim-output-card">
-                  <span className="sim-out-label">Recommended Capacity</span>
-                  <strong className="sim-out-val">{simCapacityKw} kW</strong>
-                  <span className="sim-out-sub">~{Math.ceil(simCapacityKw / 0.4)} solar panels</span>
-                </div>
-
-                <div className="sim-output-card">
-                  <span className="sim-out-label">Estimated Payback</span>
-                  <strong className="sim-out-val">{simPaybackYears} Yrs</strong>
-                  <span className="sim-out-sub">Break-even horizon</span>
-                </div>
-
-                <div className="sim-output-card green">
-                  <span className="sim-out-label">CO₂ Offset / Year</span>
-                  <strong className="sim-out-val">{simCo2Kg.toLocaleString('en-IN')} kg</strong>
-                  <span className="sim-out-sub">≈ {Math.round(simCo2Kg / 21)} trees planted</span>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 4: FINANCIAL IMPACT                               */}
-        {/* ======================================================== */}
-        <section className="solis-section financial-impact-section">
-          <div className="section-header text-center">
-            <span className="section-eyebrow">WEALTH & FINANCIAL IMPACT</span>
-            <h2 className="section-title">Engineered to Maximize Your Return</h2>
-            <p className="section-subtitle">
-              Solar is not just clean energy—it is one of the highest yielding, inflation-hedged financial assets.
+        {/* 4. FINANCIAL OUTLOOK */}
+        <section className="solis-section financial-section">
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">FINANCIAL OUTLOOK</span>
+            <h2 className="section-editorial-title">An inflation-hedged asset class.</h2>
+            <p className="section-editorial-sub">
+              Grid power tariffs rise an average of 4–6% annually. Solar turns an uncontrollable monthly expense into an owned, yield-generating capital asset.
             </p>
           </div>
 
-          <div className="editorial-stats-grid">
-            <div className="editorial-stat-card">
-              <div className="stat-glow-orb" />
-              <span className="stat-overline">AVERAGE ANNUAL SAVINGS</span>
-              <strong className="stat-hero-number">₹1,48,140</strong>
-              <p className="stat-detail">
-                Direct reduction in utility tariffs based on a typical 10 kW Indian residential rooftop installation.
+          <div className="editorial-stat-blocks">
+            <div className="editorial-stat-block">
+              <span className="stat-mono-kicker">ESTIMATED ANNUAL SAVINGS</span>
+              <strong className="editorial-num">₹{simAnnualSavings.toLocaleString('en-IN')}</strong>
+              <p className="stat-explanation">
+                Direct reduction in utility tariffs based on your calculated rooftop capacity.
               </p>
             </div>
 
-            <div className="editorial-stat-card">
-              <div className="stat-glow-orb blue" />
-              <span className="stat-overline">PAYBACK TIMELINE</span>
-              <strong className="stat-hero-number">5.4 <span className="stat-unit">Years</span></strong>
-              <p className="stat-detail">
+            <div className="editorial-stat-block">
+              <span className="stat-mono-kicker">CAPITAL RECOVERY</span>
+              <strong className="editorial-num">{simPaybackYears} <span className="stat-unit">Years</span></strong>
+              <p className="stat-explanation">
                 Rapid capital recovery backed by PM Surya Ghar Muft Bijli Yojana subsidies and net metering.
               </p>
             </div>
 
-            <div className="editorial-stat-card">
-              <div className="stat-glow-orb green" />
-              <span className="stat-overline">25-YEAR ROI</span>
-              <strong className="stat-hero-number">320% <span className="stat-unit">Net</span></strong>
-              <p className="stat-detail">
-                Tier-1 photovoltaic modules provide 25+ years of guaranteed electricity yield.
+            <div className="editorial-stat-block">
+              <span className="stat-mono-kicker">25-YEAR NET RETURN</span>
+              <strong className="editorial-num">320%</strong>
+              <p className="stat-explanation">
+                Tier-1 photovoltaic modules provide 25+ years of guaranteed electricity yield with minimal degradation.
               </p>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 5: ENVIRONMENTAL IMPACT                           */}
-        {/* ======================================================== */}
-        <section className="solis-section env-impact-section">
-          <div className="env-impact-glass-shell">
-            <div className="env-left">
-              <span className="section-eyebrow">ENVIRONMENTAL INTELLIGENCE</span>
-              <h2 className="section-title">Measurable Planet Positive Impact</h2>
-              <p className="section-subtitle">
-                Every kilowatt-hour generated on your roof directly reduces coal-fired power dependency and cleans up local air quality.
-              </p>
+        {/* 5. INTERACTIVE SOLAR SIMULATOR */}
+        <section className="solis-section simulator-section">
+          <div className="simulator-editorial-container">
+            <div className="simulator-split-layout">
+              <div className="simulator-controls-side">
+                <span className="section-mono-kicker">LIVE SIMULATOR</span>
+                <h2 className="simulator-heading">Test Your Solar ROI Live</h2>
+                <p className="simulator-sub">
+                  Adjust your average monthly power bill and available roof area to preview capital recovery and annual yields.
+                </p>
 
-              <div className="env-metric-badges">
-                <div className="env-badge-row">
-                  <div className="env-badge-icon"><Leaf size={20} /></div>
-                  <div>
-                    <strong>3,280 kg CO₂ Saved Yearly</strong>
-                    <p>Equivalent to keeping a gasoline car off the road for 14,000 km.</p>
+                <div className="sim-slider-box">
+                  <div className="sim-slider-label-row">
+                    <span className="slider-label">Monthly Electricity Bill</span>
+                    <span className="slider-val-readout">₹{Number(simulatedBill).toLocaleString('en-IN')}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="800"
+                    max="15000"
+                    step="200"
+                    value={simulatedBill}
+                    onChange={(e) => setSimulatedBill(Number(e.target.value))}
+                    className="solis-range-slider"
+                    aria-label="Monthly Electricity Bill"
+                  />
+                  <div className="sim-slider-benchmarks">
+                    <span>₹800/mo</span>
+                    <span>₹7,500/mo</span>
+                    <span>₹15,000/mo</span>
                   </div>
                 </div>
 
-                <div className="env-badge-row">
-                  <div className="env-badge-icon"><Sparkles size={20} /></div>
-                  <div>
-                    <strong>156 Mature Trees Offset</strong>
-                    <p>Calculated using international 21 kg CO₂ per tree yearly absorption metrics.</p>
+                <div className="sim-slider-box">
+                  <div className="sim-slider-label-row">
+                    <span className="slider-label">Usable Roof Area (sq ft)</span>
+                    <span className="slider-val-readout">{simulatedArea} sq ft</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="200"
+                    max="3000"
+                    step="50"
+                    value={simulatedArea}
+                    onChange={(e) => setSimulatedArea(Number(e.target.value))}
+                    className="solis-range-slider"
+                    aria-label="Usable Roof Area in square feet"
+                  />
+                  <div className="sim-slider-benchmarks">
+                    <span>200 sq ft</span>
+                    <span>1,500 sq ft</span>
+                    <span>3,000 sq ft</span>
                   </div>
                 </div>
+
+                <div className="sim-state-control">
+                  <label htmlFor="sim-state-picker">
+                    <span className="control-label">State Policy & Subsidies</span>
+                    <select
+                      id="sim-state-picker"
+                      value={simulatedState}
+                      onChange={(e) => setSimulatedState(e.target.value)}
+                      className="solis-select"
+                    >
+                      <option value="Delhi">Delhi (40% State Subsidy)</option>
+                      <option value="Gujarat">Gujarat (40% State Subsidy)</option>
+                      <option value="Rajasthan">Rajasthan (30% State Subsidy)</option>
+                      <option value="Tamil Nadu">Tamil Nadu (25% State Subsidy)</option>
+                      <option value="Maharashtra">Maharashtra (20% State Subsidy)</option>
+                      <option value="Karnataka">Karnataka (20% State Subsidy)</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh (15% State Subsidy)</option>
+                      <option value="Punjab">Punjab (20% State Subsidy)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  className="solis-btn solis-btn-primary full-width"
+                  onClick={() => navigate('/calculator')}
+                >
+                  <span>Launch full rooftop calculator</span>
+                  <ArrowRight size={15} />
+                </button>
               </div>
-            </div>
 
-            <div className="env-right">
-              <div className="green-energy-sphere">
-                <div className="sphere-core">
-                  <Leaf size={44} className="sphere-leaf-icon" />
-                  <span className="sphere-tag">ZERO EMISSIONS</span>
+              <div className="simulator-metrics-side">
+                <div className="sim-metrics-grid">
+                  <div className="sim-metric-card highlight">
+                    <span className="sim-kicker">ESTIMATED ANNUAL SAVINGS</span>
+                    <strong className="sim-hero-number">₹{simAnnualSavings.toLocaleString('en-IN')}</strong>
+                    <span className="sim-foot-note">₹{(simAnnualSavings * 25).toLocaleString('en-IN')} over 25-year lifespan</span>
+                  </div>
+
+                  <div className="sim-metric-card">
+                    <span className="sim-kicker">RECOMMENDED CAPACITY</span>
+                    <strong className="sim-hero-number">{simCapacityKw} <span className="sim-unit">kW</span></strong>
+                    <span className="sim-foot-note">~{simPanelCount} solar panels required</span>
+                  </div>
+
+                  <div className="sim-metric-card">
+                    <span className="sim-kicker">PAYBACK HORIZON</span>
+                    <strong className="sim-hero-number">{simPaybackYears} <span className="sim-unit">Years</span></strong>
+                    <span className="sim-foot-note">100% initial capital amortized</span>
+                  </div>
+
+                  <div className="sim-metric-card green">
+                    <span className="sim-kicker">CO₂ EMISSIONS AVOIDED</span>
+                    <strong className="sim-hero-number">{simCo2Kg.toLocaleString('en-IN')} <span className="sim-unit">kg/yr</span></strong>
+                    <span className="sim-foot-note">≈ {Math.round(simCo2Kg / 21)} mature trees absorption</span>
+                  </div>
                 </div>
-                <div className="orbit-ring ring-1" />
-                <div className="orbit-ring ring-2" />
-                <div className="orbit-ring ring-3" />
               </div>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 6: GOVERNMENT SUBSIDIES & SCHEMES                 */}
-        {/* ======================================================== */}
-        <section className="solis-section subsidies-section">
-          <div className="section-header text-center">
-            <span className="section-eyebrow">POLICY & SUBSIDY EXPLORER</span>
-            <h2 className="section-title">Take Advantage of Government Incentives</h2>
-            <p className="section-subtitle">
-              Central & State policies significantly lower your upfront capital requirements.
+        {/* 6. ENVIRONMENTAL IMPACT */}
+        <section className="solis-section environmental-section">
+          <div className="editorial-impact-shell">
+            <div className="impact-left-copy">
+              <span className="section-mono-kicker">ENVIRONMENTAL IMPACT</span>
+              <h2 className="section-editorial-title">Quantifiable Decarbonization</h2>
+              <p className="section-editorial-sub">
+                Every kilowatt-hour generated on your roof directly reduces thermal coal dependency and cleans local air basins.
+              </p>
+
+              <div className="impact-keypoints">
+                <div className="impact-keypoint">
+                  <div className="keypoint-dot" aria-hidden="true" />
+                  <div>
+                    <strong>{simCo2Kg.toLocaleString('en-IN')} kg CO₂ avoided per year</strong>
+                    <p>Equivalent to eliminating thousands of kilometers driven in an internal combustion vehicle.</p>
+                  </div>
+                </div>
+
+                <div className="impact-keypoint">
+                  <div className="keypoint-dot" aria-hidden="true" />
+                  <div>
+                    <strong>{Math.round(simCo2Kg / 21)} mature trees planted equivalent</strong>
+                    <p>Calculated using international 21 kg annual CO₂ sequestration per mature tree benchmark.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="impact-right-visual">
+              <div className="impact-editorial-card">
+                <span className="card-kicker">ZERO EMISSIONS ARCHITECTURE</span>
+                <strong className="card-big-stat">100%</strong>
+                <p className="card-desc">
+                  Green rooftop energy offset with zero tailpipe emissions and zero transmission line losses.
+                </p>
+                <div className="card-status-pill">
+                  <span className="intel-pulse-dot" aria-hidden="true" />
+                  <span>Central Electricity Authority (CEA) Emission Baseline</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 7. HOW SOLISIQ WORKS (METHODOLOGY) */}
+        <section id="how-it-works" className="solis-section method-section">
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">HOW IT WORKS</span>
+            <h2 className="section-editorial-title">Solar Intelligence, Simplified</h2>
+            <p className="section-editorial-sub">
+              From geographic satellite coordinates to precision financial payback models in five transparent steps.
             </p>
           </div>
 
-          <div className="subsidies-grid">
-            <div className="subsidy-card">
-              <div className="subsidy-header">
-                <span className="subsidy-pct">40%</span>
-                <span className="subsidy-state-tag">Delhi & Gujarat</span>
+          <div className="method-steps-grid five-steps-grid">
+            <div className="method-step-card">
+              <div className="step-num-mono">01</div>
+              <h3 className="step-heading">Tell us about your home.</h3>
+              <p className="step-body">
+                Specify your geographic location and monthly electricity expenditure to initialize your energy profile.
+              </p>
+              <span className="step-tag-mono">GEOSPATIAL INGESTION</span>
+            </div>
+
+            <div className="method-step-card">
+              <div className="step-num-mono">02</div>
+              <h3 className="step-heading">Analyze your rooftop.</h3>
+              <p className="step-body">
+                We assess usable roof square footage, tilt, and shading factors to determine maximum panel capacity.
+              </p>
+              <span className="step-tag-mono">GEOMETRIC MODEL</span>
+            </div>
+
+            <div className="method-step-card">
+              <div className="step-num-mono">03</div>
+              <h3 className="step-heading">Forecast energy generation.</h3>
+              <p className="step-body">
+                Our Random Forest ensemble model forecasts solar irradiance, cloud cover, and ambient temperature.
+              </p>
+              <span className="step-tag-mono">RANDOM FOREST ML</span>
+            </div>
+
+            <div className="method-step-card">
+              <div className="step-num-mono">04</div>
+              <h3 className="step-heading">Calculate financial return.</h3>
+              <p className="step-body">
+                Compute net monthly savings, 25-year cumulative gains, and state & central subsidy deductions.
+              </p>
+              <span className="step-tag-mono">CAPITAL RECOVERY</span>
+            </div>
+
+            <div className="method-step-card">
+              <div className="step-num-mono">05</div>
+              <h3 className="step-heading">Explore your recommendation.</h3>
+              <p className="step-body">
+                Review your personalized solar intelligence report and export an official PDF summary.
+              </p>
+              <span className="step-tag-mono">SOLAR DECISION</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 8. GOVERNMENT SUBSIDIES & SCHEMES */}
+        <section className="solis-section subsidies-section">
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">CAPITAL INCENTIVES</span>
+            <h2 className="section-editorial-title">Verified Government Subsidies</h2>
+            <p className="section-editorial-sub">
+              Central and State policies significantly lower upfront residential capital requirements.
+            </p>
+          </div>
+
+          <div className="subsidies-editorial-grid">
+            <div className="subsidy-editorial-card">
+              <div className="subsidy-top-row">
+                <span className="subsidy-grant-num">40%</span>
+                <span className="subsidy-tag">Delhi & Gujarat</span>
               </div>
-              <h3 className="subsidy-name">Rooftop Solar Incentive Program</h3>
-              <p className="subsidy-desc">
+              <h3 className="subsidy-title">Rooftop Solar Incentive Program</h3>
+              <p className="subsidy-description">
                 Direct capital subsidy on benchmark capital cost for residential systems up to 3 kW capacity.
               </p>
               <button
                 type="button"
-                className="subsidy-explore-btn"
+                className="subsidy-link-btn"
                 onClick={() => navigate('/subsidy-checker')}
               >
                 <span>Check Eligibility</span>
-                <ArrowUpRight size={15} />
+                <ArrowUpRight size={14} />
               </button>
             </div>
 
-            <div className="subsidy-card">
-              <div className="subsidy-header">
-                <span className="subsidy-pct">30%</span>
-                <span className="subsidy-state-tag">Rajasthan</span>
+            <div className="subsidy-editorial-card">
+              <div className="subsidy-top-row">
+                <span className="subsidy-grant-num">30%</span>
+                <span className="subsidy-tag">Rajasthan</span>
               </div>
-              <h3 className="subsidy-name">Rajasthan Solar Energy Initiative</h3>
-              <p className="subsidy-desc">
-                Generous capital support and accelerated net-metering approval for high solar irradiance zones.
+              <h3 className="subsidy-title">Rajasthan Solar Energy Policy</h3>
+              <p className="subsidy-description">
+                Generous capital support and accelerated net-metering approval for premier high solar irradiance zones.
               </p>
               <button
                 type="button"
-                className="subsidy-explore-btn"
+                className="subsidy-link-btn"
                 onClick={() => navigate('/subsidy-checker')}
               >
                 <span>Check Eligibility</span>
-                <ArrowUpRight size={15} />
+                <ArrowUpRight size={14} />
               </button>
             </div>
 
-            <div className="subsidy-card">
-              <div className="subsidy-header">
-                <span className="subsidy-pct">₹78,000</span>
-                <span className="subsidy-state-tag">National</span>
+            <div className="subsidy-editorial-card">
+              <div className="subsidy-top-row">
+                <span className="subsidy-grant-num">₹78,000</span>
+                <span className="subsidy-tag">National DBT</span>
               </div>
-              <h3 className="subsidy-name">PM Surya Ghar Muft Bijli Yojana</h3>
-              <p className="subsidy-desc">
+              <h3 className="subsidy-title">PM Surya Ghar Muft Bijli Yojana</h3>
+              <p className="subsidy-description">
                 Direct beneficiary transfer (DBT) subsidy credited directly to your bank account upon installation.
               </p>
               <button
                 type="button"
-                className="subsidy-explore-btn"
+                className="subsidy-link-btn"
                 onClick={() => navigate('/subsidy-checker')}
               >
                 <span>Check Eligibility</span>
-                <ArrowUpRight size={15} />
+                <ArrowUpRight size={14} />
               </button>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 7: LIVE COMMUNITY INSIGHTS                        */}
-        {/* ======================================================== */}
+        {/* 9. LIVE COMMUNITY ADOPTION */}
         <section id="community" className="solis-section community-section">
-          <div className="section-header text-center">
-            <span className="section-eyebrow">COMMUNITY ADOPTION</span>
-            <h2 className="section-title">Real Rooftops, Real Numbers</h2>
-            <p className="section-subtitle">
-              Aggregated anonymous insights from active calculations performed on the SolisIQ platform.
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">COMMUNITY TELEMETRY</span>
+            <h2 className="section-editorial-title">Real Rooftops, Verified Numbers</h2>
+            <p className="section-editorial-sub">
+              Aggregated anonymous insights from active calculations performed on the SolisIQ engine.
             </p>
           </div>
 
           {communityLoading ? (
-            <div className="community-loading-box">
+            <div className="editorial-loading-box">
               <span className="solis-spinner" />
               <p>Fetching real-time community assessments...</p>
             </div>
           ) : communityStats ? (
-            <div className="community-stats-composition">
-              <div className="community-kpi-row">
-                <div className="comm-kpi-card">
-                  <span className="comm-kpi-label">Total Calculations</span>
-                  <strong className="comm-kpi-number">{communityStats.total_calculations || 0}</strong>
-                  <span className="comm-kpi-sub">Rooftops analyzed</span>
+            <div className="community-editorial-wrapper">
+              <div className="community-metrics-row">
+                <div className="community-stat-cell">
+                  <span className="comm-mono-lbl">TOTAL CALCULATIONS</span>
+                  <strong className="comm-hero-num">{communityStats.total_calculations || 0}</strong>
+                  <span className="comm-sub">Rooftops evaluated</span>
                 </div>
-                <div className="comm-kpi-card">
-                  <span className="comm-kpi-label">Avg. Monthly Savings</span>
-                  <strong className="comm-kpi-number">₹{Number(communityStats.avg_monthly_savings || 0).toFixed(0)}</strong>
-                  <span className="comm-kpi-sub">Per household</span>
+                <div className="community-stat-cell">
+                  <span className="comm-mono-lbl">AVG. MONTHLY SAVINGS</span>
+                  <strong className="comm-hero-num">₹{Number(communityStats.avg_monthly_savings || 0).toFixed(0)}</strong>
+                  <span className="comm-sub">Per household</span>
                 </div>
-                <div className="comm-kpi-card">
-                  <span className="comm-kpi-label">Avg. Payback Horizon</span>
-                  <strong className="comm-kpi-number">{Number(communityStats.avg_payback_period || 0).toFixed(1)} Yrs</strong>
-                  <span className="comm-kpi-sub">Across all states</span>
+                <div className="community-stat-cell">
+                  <span className="comm-mono-lbl">AVG. PAYBACK HORIZON</span>
+                  <strong className="comm-hero-num">{Number(communityStats.avg_payback_period || 0).toFixed(1)} Yrs</strong>
+                  <span className="comm-sub">Across all states</span>
                 </div>
-                <div className="comm-kpi-card">
-                  <span className="comm-kpi-label">Avg. Daily Output</span>
-                  <strong className="comm-kpi-number">{Number(communityStats.avg_predicted_output || 0).toFixed(2)} kWh</strong>
-                  <span className="comm-kpi-sub">Solar energy yield</span>
+                <div className="community-stat-cell">
+                  <span className="comm-mono-lbl">AVG. DAILY OUTPUT</span>
+                  <strong className="comm-hero-num">{Number(communityStats.avg_predicted_output || 0).toFixed(2)} kWh</strong>
+                  <span className="comm-sub">Solar power yield</span>
                 </div>
               </div>
 
               {communityStats.top_cities && communityStats.top_cities.length > 0 && (
-                <div className="comm-chart-card">
-                  <div className="chart-card-header">
+                <div className="community-chart-panel">
+                  <div className="chart-panel-header">
                     <h3>Top Locations by Solar Calculations</h3>
-                    <p>Cities with the highest volume of residential solar assessments.</p>
+                    <p>Cities with the highest volume of residential assessments.</p>
                   </div>
-                  <div style={{ width: '100%', height: 280 }}>
+                  <div style={{ width: '100%', height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={communityStats.top_cities}
                         margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
                       >
-                        <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <CartesianGrid stroke="rgba(74, 74, 74, 0.1)" vertical={false} />
                         <XAxis
                           dataKey="city"
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                          stroke="#7A7A7A"
+                          tick={{ fill: '#5C5C5C', fontSize: 12, fontFamily: 'Inter' }}
                         />
                         <YAxis
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                          stroke="#7A7A7A"
+                          tick={{ fill: '#5C5C5C', fontSize: 12, fontFamily: 'Inter' }}
                         />
                         <Tooltip
                           contentStyle={{
-                            background: '#0d1322',
-                            border: '1px solid rgba(255,140,50,0.3)',
-                            borderRadius: '12px',
-                            color: '#f8fafc',
+                            background: '#4A4A4A',
+                            border: '1px solid rgba(255, 245, 245, 0.15)',
+                            borderRadius: '8px',
+                            color: '#FFF5F5',
+                            fontSize: '13px',
+                            fontFamily: 'Inter',
                           }}
                         />
-                        <Bar dataKey="calculations" fill="#ff7a1a" radius={[6, 6, 0, 0]} name="Calculations" />
+                        <Bar dataKey="calculations" fill="#E2B4BD" radius={[4, 4, 0, 0]} name="Assessments" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -702,100 +716,93 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
               )}
             </div>
           ) : (
-            <div className="community-empty-box">
+            <div className="editorial-empty-box">
               <p>Community metrics will populate as more users calculate rooftop assessments.</p>
             </div>
           )}
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 8: AI MODEL BENCHMARKS                            */}
-        {/* ======================================================== */}
-        <section className="solis-section model-benchmarks-section">
-          <div className="section-header text-center">
-            <span className="section-eyebrow">MACHINE LEARNING ARCHITECTURE</span>
-            <h2 className="section-title">Model Performance & Transparency</h2>
-            <p className="section-subtitle">
-              Comparing our trained Random Forest ensemble against traditional baseline models.
+        {/* 10. MACHINE LEARNING BENCHMARKS */}
+        <section className="solis-section benchmarks-section">
+          <div className="section-head-editorial">
+            <span className="section-mono-kicker">MODEL TRANSPARENCY</span>
+            <h2 className="section-editorial-title">Random Forest AI Architecture</h2>
+            <p className="section-editorial-sub">
+              Benchmarking our trained ensemble model against traditional linear regression baselines.
             </p>
           </div>
 
-          <div className="benchmark-card-wrap">
+          <div className="benchmark-editorial-panel">
             {comparison ? (
-              <div className="benchmark-table-container">
-                <table className="benchmark-table">
+              <div className="benchmark-table-wrapper">
+                <table className="editorial-data-table">
                   <thead>
                     <tr>
                       <th>Algorithm</th>
-                      <th>Root Mean Square Error (RMSE)</th>
-                      <th>Mean Absolute Error (MAE)</th>
+                      <th>RMSE</th>
+                      <th>MAE</th>
                       <th>R² Variance Metric</th>
-                      <th>Status</th>
+                      <th>Deployment Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="featured-row">
                       <td>
-                        <div className="algo-name-cell">
-                          <Cpu size={16} className="algo-icon" />
-                          <strong>Random Forest Ensemble (Deployed)</strong>
+                        <div className="algo-cell">
+                          <span className="algo-dot-live" aria-hidden="true" />
+                          <strong>Random Forest Ensemble</strong>
                         </div>
                       </td>
-                      <td>{Number(comparison.random_forest?.rmse ?? 0).toFixed(4)}</td>
-                      <td>{Number(comparison.random_forest?.mae ?? 0).toFixed(4)}</td>
-                      <td>{Number(comparison.random_forest?.r2 ?? 0).toFixed(4)}</td>
-                      <td><span className="status-badge live">Production Active</span></td>
+                      <td><span className="num-mono">{Number(comparison.random_forest?.rmse ?? 0).toFixed(4)}</span></td>
+                      <td><span className="num-mono">{Number(comparison.random_forest?.mae ?? 0).toFixed(4)}</span></td>
+                      <td><span className="num-mono">{Number(comparison.random_forest?.r2 ?? 0).toFixed(4)}</span></td>
+                      <td><span className="editorial-badge-live">Active Production Model</span></td>
                     </tr>
                     <tr>
                       <td>
-                        <div className="algo-name-cell">
-                          <BarChart3 size={16} className="algo-icon muted" />
-                          <span>Linear Regression (Baseline)</span>
+                        <div className="algo-cell">
+                          <span className="algo-dot-baseline" aria-hidden="true" />
+                          <span>Linear Regression</span>
                         </div>
                       </td>
-                      <td>{Number(comparison.linear_regression?.rmse ?? 0).toFixed(4)}</td>
-                      <td>{Number(comparison.linear_regression?.mae ?? 0).toFixed(4)}</td>
-                      <td>{Number(comparison.linear_regression?.r2 ?? 0).toFixed(4)}</td>
-                      <td><span className="status-badge">Baseline</span></td>
+                      <td><span className="num-mono">{Number(comparison.linear_regression?.rmse ?? 0).toFixed(4)}</span></td>
+                      <td><span className="num-mono">{Number(comparison.linear_regression?.mae ?? 0).toFixed(4)}</span></td>
+                      <td><span className="num-mono">{Number(comparison.linear_regression?.r2 ?? 0).toFixed(4)}</span></td>
+                      <td><span className="editorial-badge-baseline">Comparative Baseline</span></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             ) : loadingComparison ? (
-              <div className="community-loading-box">
+              <div className="editorial-loading-box">
                 <span className="solis-spinner" />
                 <p>Loading AI telemetry data...</p>
               </div>
             ) : (
-              <div className="community-empty-box">
+              <div className="editorial-empty-box">
                 <p>Model benchmarks initialized and running.</p>
               </div>
             )}
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* SECTION 9: FINAL CINEMATIC CTA                            */}
-        {/* ======================================================== */}
-        <section className="solis-section final-cta-section">
-          <div className="final-cta-card">
-            <div className="cta-glow-flare" />
-            <span className="section-eyebrow">START SAVING TODAY</span>
-            <h2 className="final-cta-title">
-              YOUR ROOFTOP IS MORE <br />
-              <span className="title-gradient-solar">VALUABLE THAN YOU THINK.</span>
+        {/* 11. FINAL EDITORIAL CTA (DARK CHARCOAL SECTION) */}
+        <section className="solis-section final-cta-editorial">
+          <div className="final-cta-shell">
+            <span className="section-mono-kicker">GET STARTED</span>
+            <h2 className="final-cta-heading">
+              See what your roof can generate.
             </h2>
-            <p className="final-cta-subtitle">
-              Join thousands of households taking control of their energy destiny with SolisIQ.
+            <p className="final-cta-description">
+              Get a clear estimate of system size, generation, savings, and payback.
             </p>
             <button
               type="button"
-              className="solis-btn solis-btn-primary final-btn"
+              className="solis-btn solis-btn-primary final-hero-btn"
               onClick={() => navigate('/calculator')}
             >
-              <Flame size={18} />
-              <span>ANALYZE MY SOLAR POTENTIAL</span>
-              <ArrowRight size={16} />
+              <span>Explore Solar Potential</span>
+              <ArrowRight size={15} />
             </button>
           </div>
         </section>
@@ -803,58 +810,58 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
 
       {/* FOOTER */}
       <footer className="solis-footer">
-        <div className="footer-container">
-          <div className="footer-brand-col">
-            <div className="solis-brand">
-              <div className="solis-logo-icon">
-                <Sun size={20} />
-              </div>
+        <div className="footer-editorial-container">
+          <div className="footer-brand-column">
+            <Link to="/" className="solis-brand">
+              <span className="brand-dot" aria-hidden="true" />
               <span className="brand-title">SolisIQ</span>
-            </div>
-            <p className="footer-brand-desc">
-              AI-driven solar energy forecasting and financial intelligence platform.
+            </Link>
+            <p className="footer-brand-bio">
+              AI-driven solar energy forecasting and financial intelligence for residential and commercial rooftops.
             </p>
-            <span className="footer-api-credit">
+            <span className="footer-weather-credit">
               Weather telemetry powered by <a href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a>
             </span>
           </div>
 
-          <div className="footer-links-col">
-            <h4>Product</h4>
-            <Link to="/calculator">Solar Advisor</Link>
-            <Link to="/subsidy-checker">Subsidy Checker</Link>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#community">Community Insights</a>
-          </div>
+          <div className="footer-links-grid">
+            <div className="footer-nav-col">
+              <span className="footer-col-title">Platform</span>
+              <Link to="/calculator">Solar Advisor</Link>
+              <Link to="/subsidy-checker">Subsidy Explorer</Link>
+              <a href="#how-it-works">Methodology</a>
+              <a href="#workflow">Intelligence</a>
+            </div>
 
-          <div className="footer-links-col">
-            <h4>Account</h4>
-            {token ? (
-              <Link to="/dashboard">My Dashboard</Link>
-            ) : (
-              <>
-                <Link to="/login">Sign In</Link>
-                <Link to="/signup">Create Account</Link>
-              </>
-            )}
-            <Link to="/admin/login">Admin Console</Link>
-          </div>
+            <div className="footer-nav-col">
+              <span className="footer-col-title">Account</span>
+              {token ? (
+                <Link to="/calculator">Console</Link>
+              ) : (
+                <>
+                  <Link to="/login">Sign In</Link>
+                  <Link to="/signup">Register</Link>
+                </>
+              )}
+              <Link to="/admin/login">Admin Console</Link>
+            </div>
 
-          <div className="footer-links-col">
-            <h4>Platform</h4>
-            <a href="https://solis-iq-backend.onrender.com" target="_blank" rel="noreferrer">API Health</a>
-            <span className="footer-tag">Python 3.12 + React 18</span>
-            <span className="footer-tag">Random Forest AI</span>
+            <div className="footer-nav-col">
+              <span className="footer-col-title">Engine</span>
+              <span className="footer-meta-pill">Random Forest AI</span>
+              <span className="footer-meta-pill">Open-Meteo V1 API</span>
+              <span className="footer-meta-pill">CEA Emission Grid</span>
+            </div>
           </div>
         </div>
 
         <div className="footer-bottom-bar">
-          <div className="footer-bottom-container">
+          <div className="footer-bottom-inner">
             <span>© 2026 SolisIQ Technologies Inc. All rights reserved.</span>
-            <div className="footer-legal-links">
+            <div className="footer-legal-row">
               <span>Privacy Policy</span>
               <span>Terms of Service</span>
-              <span>Security</span>
+              <span>Climate Disclosure</span>
             </div>
           </div>
         </div>

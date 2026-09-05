@@ -57,121 +57,111 @@ function SignupPage({ onSignup }) {
         <div className="ambient-glow glow-right" />
       </div>
 
-      <div className="auth-split-container">
+      <div className="auth-split-editorial-container">
         {/* Left Visual Presentation */}
-        <aside className="auth-visual-side">
-          <Link to="/" className="solis-brand auth-brand">
-            <div className="solis-logo-icon">
-              <Sun size={22} />
-            </div>
-            <span className="brand-title">SolisIQ</span>
-          </Link>
+        <aside className="auth-editorial-visual">
+          <div className="auth-img-backdrop">
+            <img
+              src="/assets/hero-rooftop.jpg"
+              alt="Sustainable architectural home with rooftop solar"
+              className="auth-cinematic-img"
+            />
+            <div className="auth-visual-scrim" />
+          </div>
 
           <div className="auth-visual-content">
-            <div className="auth-eyebrow">
-              <Sparkles size={14} className="text-solar" />
-              <span>START YOUR SOLAR ODYSSEY</span>
-            </div>
-            <h2 className="auth-hero-title">
-              Power your home with <br />
-              <span className="title-gradient-solar">Zero Emissions.</span>
-            </h2>
-            <p className="auth-hero-desc">
-              Join thousands of Indian households analyzing rooftops, saving on electricity bills, and accelerating net-zero transition.
-            </p>
+            <Link to="/" className="solis-brand auth-brand">
+              <span className="brand-dot" aria-hidden="true" />
+              <span className="brand-title">SolisIQ</span>
+              <span className="brand-mono-badge">AI</span>
+            </Link>
 
-            <div className="auth-feature-cards-col">
-              <div className="auth-feature-pill">
-                <Leaf size={18} className="text-emerald" />
-                <div>
-                  <strong>Complete Carbon Audit</strong>
-                  <p>Quantify your lifetime greenhouse gas reduction.</p>
-                </div>
-              </div>
-
-              <div className="auth-feature-pill">
-                <Zap size={18} className="text-solar" />
-                <div>
-                  <strong>Government Subsidy Tracking</strong>
-                  <p>Never miss out on central or state capital grants.</p>
-                </div>
-              </div>
+            <div className="auth-copy-bottom">
+              <span className="auth-mono-kicker">SOLISIQ REGISTRY</span>
+              <h2 className="auth-hero-title">
+                Zero emissions, <br />
+                lasting wealth.
+              </h2>
+              <p className="auth-hero-desc">
+                Join homeowners evaluating rooftops, maximizing tariff savings, and accelerating energy independence.
+              </p>
             </div>
           </div>
         </aside>
 
         {/* Right Form Presentation */}
-        <main className="auth-form-side">
-          <div className="solis-card auth-form-card">
+        <main className="auth-editorial-form-side">
+          <div className="auth-editorial-card">
             <div className="auth-form-head">
+              <span className="auth-mono-kicker">REGISTRATION</span>
               <h1 className="auth-form-title">Create Account</h1>
               <p className="auth-form-sub">Sign up for a free SolisIQ intelligence account.</p>
             </div>
 
-            <form className="auth-actual-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="signup-username">
-                  <div className="label-title">
-                    <User size={15} className="label-icon" />
-                    <span>Username</span>
-                  </div>
+            <form className="auth-form-body" onSubmit={handleSubmit}>
+              <div className="form-field-group">
+                <label htmlFor="signup-username" className="field-label">
+                  Username
                 </label>
-                <input
-                  id="signup-username"
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="e.g. rohit_solar"
-                  required
-                  disabled={loading}
-                  className="solis-input"
-                />
+                <div className="input-affix-wrap">
+                  <User size={16} className="input-icon" />
+                  <input
+                    id="signup-username"
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="e.g. rohit_solar"
+                    required
+                    disabled={loading}
+                    className="solis-editorial-input"
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="signup-email">
-                  <div className="label-title">
-                    <Mail size={15} className="label-icon" />
-                    <span>Email Address</span>
-                  </div>
+              <div className="form-field-group">
+                <label htmlFor="signup-email" className="field-label">
+                  Email Address
                 </label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="name@company.com"
-                  required
-                  disabled={loading}
-                  className="solis-input"
-                />
+                <div className="input-affix-wrap">
+                  <Mail size={16} className="input-icon" />
+                  <input
+                    id="signup-email"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@company.com"
+                    required
+                    disabled={loading}
+                    className="solis-editorial-input"
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="signup-password">
-                  <div className="label-title">
-                    <Lock size={15} className="label-icon" />
-                    <span>Password</span>
-                  </div>
+              <div className="form-field-group">
+                <label htmlFor="signup-password" className="field-label">
+                  Password
                 </label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                  disabled={loading}
-                  className="solis-input"
-                />
+                <div className="input-affix-wrap">
+                  <Lock size={16} className="input-icon" />
+                  <input
+                    id="signup-password"
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                    className="solis-editorial-input"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="solis-btn solis-btn-primary auth-submit-btn"
+                className="solis-btn solis-btn-primary full-width"
                 disabled={loading}
               >
                 {loading ? (
@@ -179,20 +169,20 @@ function SignupPage({ onSignup }) {
                 ) : (
                   <>
                     <span>Create Free Account</span>
-                    <ArrowRight size={16} />
+                    <ArrowRight size={15} />
                   </>
                 )}
               </button>
 
               {error && (
-                <div className="solis-form-error">
+                <div className="editorial-form-error" role="alert">
                   <AlertCircle size={16} />
                   <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="solis-form-success">
+                <div className="editorial-form-success" role="status">
                   <CheckCircle2 size={16} />
                   <span>{success}</span>
                 </div>

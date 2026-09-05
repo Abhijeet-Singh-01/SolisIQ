@@ -55,101 +55,91 @@ function LoginPage({ onLogin }) {
         <div className="ambient-glow glow-right" />
       </div>
 
-      <div className="auth-split-container">
+      <div className="auth-split-editorial-container">
         {/* Left Visual Presentation */}
-        <aside className="auth-visual-side">
-          <Link to="/" className="solis-brand auth-brand">
-            <div className="solis-logo-icon">
-              <Sun size={22} />
-            </div>
-            <span className="brand-title">SolisIQ</span>
-          </Link>
+        <aside className="auth-editorial-visual">
+          <div className="auth-img-backdrop">
+            <img
+              src="/assets/solar-cells.jpg"
+              alt="Monocrystalline solar photovoltaic cells with warm sunlight reflection"
+              className="auth-cinematic-img"
+            />
+            <div className="auth-visual-scrim" />
+          </div>
 
           <div className="auth-visual-content">
-            <div className="auth-eyebrow">
-              <Sparkles size={14} className="text-solar" />
-              <span>PRECISION ENERGY REVOLUTION</span>
-            </div>
-            <h2 className="auth-hero-title">
-              Welcome back to <br />
-              <span className="title-gradient-solar">Solar Intelligence.</span>
-            </h2>
-            <p className="auth-hero-desc">
-              Sign in to manage your rooftop assessments, track tariff savings, and download executive PDF reports.
-            </p>
+            <Link to="/" className="solis-brand auth-brand">
+              <span className="brand-dot" aria-hidden="true" />
+              <span className="brand-title">SolisIQ</span>
+              <span className="brand-mono-badge">AI</span>
+            </Link>
 
-            <div className="auth-feature-cards-col">
-              <div className="auth-feature-pill">
-                <Zap size={18} className="text-solar" />
-                <div>
-                  <strong>Instant Saved Calculations</strong>
-                  <p>Access your past rooftop forecasts anytime.</p>
-                </div>
-              </div>
-
-              <div className="auth-feature-pill">
-                <TrendingUp size={18} className="text-emerald" />
-                <div>
-                  <strong>Personalized Tariff Modeling</strong>
-                  <p>Tailored financial yields and payback timelines.</p>
-                </div>
-              </div>
+            <div className="auth-copy-bottom">
+              <span className="auth-mono-kicker">SOLISIQ CONSOLE</span>
+              <h2 className="auth-hero-title">
+                Solar intelligence, <br />
+                refined.
+              </h2>
+              <p className="auth-hero-desc">
+                Sign in to manage your rooftop assessments, track tariff savings, and download executive PDF reports.
+              </p>
             </div>
           </div>
         </aside>
 
         {/* Right Form Presentation */}
-        <main className="auth-form-side">
-          <div className="solis-card auth-form-card">
+        <main className="auth-editorial-form-side">
+          <div className="auth-editorial-card">
             <div className="auth-form-head">
-              <h1 className="auth-form-title">Sign In</h1>
-              <p className="auth-form-sub">Enter your email credentials to access your dashboard.</p>
+              <span className="auth-mono-kicker">AUTHENTICATION</span>
+              <h1 className="auth-form-title">Welcome back</h1>
+              <p className="auth-form-sub">Enter your email and credentials to access your account.</p>
             </div>
 
-            <form className="auth-actual-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="login-email">
-                  <div className="label-title">
-                    <Mail size={15} className="label-icon" />
-                    <span>Email Address</span>
-                  </div>
+            <form className="auth-form-body" onSubmit={handleSubmit}>
+              <div className="form-field-group">
+                <label htmlFor="login-email" className="field-label">
+                  Email Address
                 </label>
-                <input
-                  id="login-email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="name@company.com"
-                  required
-                  disabled={loading}
-                  className="solis-input"
-                />
+                <div className="input-affix-wrap">
+                  <Mail size={16} className="input-icon" />
+                  <input
+                    id="login-email"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@company.com"
+                    required
+                    disabled={loading}
+                    className="solis-editorial-input"
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="login-password">
-                  <div className="label-title">
-                    <Lock size={15} className="label-icon" />
-                    <span>Password</span>
-                  </div>
+              <div className="form-field-group">
+                <label htmlFor="login-password" className="field-label">
+                  Password
                 </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                  disabled={loading}
-                  className="solis-input"
-                />
+                <div className="input-affix-wrap">
+                  <Lock size={16} className="input-icon" />
+                  <input
+                    id="login-password"
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                    className="solis-editorial-input"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="solis-btn solis-btn-primary auth-submit-btn"
+                className="solis-btn solis-btn-primary full-width"
                 disabled={loading}
               >
                 {loading ? (
@@ -157,13 +147,13 @@ function LoginPage({ onLogin }) {
                 ) : (
                   <>
                     <span>Sign In</span>
-                    <ArrowRight size={16} />
+                    <ArrowRight size={15} />
                   </>
                 )}
               </button>
 
               {error && (
-                <div className="solis-form-error">
+                <div className="editorial-form-error" role="alert">
                   <AlertCircle size={16} />
                   <span>{error}</span>
                 </div>

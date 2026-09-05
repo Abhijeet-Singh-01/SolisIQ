@@ -10,12 +10,11 @@ import {
   Mic,
   MicOff,
   Sparkles,
-  Flame,
   AlertCircle,
-  CheckCircle2,
-  Cpu,
-  Layers,
   ArrowRight,
+  TrendingUp,
+  Leaf,
+  ShieldCheck,
 } from 'lucide-react';
 
 const states = [
@@ -31,12 +30,19 @@ const states = [
 
 const quickCities = ['New Delhi', 'Mumbai', 'Bengaluru', 'Jaipur', 'Ahmedabad', 'Chennai', 'Lucknow'];
 
+const solarGoals = [
+  { id: 'savings', label: 'Maximum Savings', icon: TrendingUp, desc: 'Cut grid power bills by up to 90%' },
+  { id: 'independence', label: 'Energy Independence', icon: ShieldCheck, desc: 'Hedge against annual utility tariff spikes' },
+  { id: 'carbon', label: 'Net-Zero Footprint', icon: Leaf, desc: 'Directly eliminate domestic carbon emissions' },
+];
+
 function SolarInputForm({ token, onResults, onHistoryRefresh }) {
   const [formData, setFormData] = useState({
     city: 'New Delhi',
     monthlyBill: '3500',
     rooftopArea: '600',
     state: 'Delhi',
+    goal: 'savings',
   });
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -92,7 +98,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
     const area = Number(formData.rooftopArea);
 
     if (!formData.city.trim()) {
-      return 'Please enter a city or location.';
+      return 'Please enter a city or geographic location.';
     }
     if (!Number.isFinite(bill) || bill <= 0) {
       return 'Monthly electricity bill must be a positive number.';
@@ -166,7 +172,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
 
   const startVoiceInput = () => {
     if (!recognitionRef.current) return;
-    setVoiceStatus('Listening... say your monthly power bill (e.g. "Three thousand rupees")');
+    setVoiceStatus('Listening... state your average monthly bill in rupees');
     setListening(true);
     try {
       recognitionRef.current.start();
@@ -194,7 +200,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
       };
 
       recognition.onerror = (event) => {
-        setVoiceStatus(`Voice input error: ${event.error}`);
+        setVoiceStatus(`Voice input notice: ${event.error}`);
         setListening(false);
       };
 
@@ -245,7 +251,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
 
       const weatherData = weatherResponse.data;
       if (!weatherData || weatherData.error) {
-        throw new Error(weatherData?.error || 'Weather lookup failed for that location. Please try another city.');
+        throw new Error(weatherData?.error || 'Weather telemetry lookup failed for that location. Please verify your city.');
       }
 
       // Step 2: Random Forest ML prediction
@@ -277,7 +283,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
       });
 
       if (!roiResponse?.data || roiResponse.data.error) {
-        throw new Error(roiResponse?.data?.error || 'Savings calculation failed.');
+        throw new Error(roiResponse?.data?.error || 'Financial savings calculation failed.');
       }
 
       // Step 4: Carbon footprint calculation
@@ -308,7 +314,10 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
       const results = {
         prediction: predictionResponse.data,
         roi: roiResponse.data,
-        carbon: carbonResponse.data || { co2_saved_kg: Math.round(annualGenerationKwh * 0.82), tree_equivalent: Math.round(annualGenerationKwh * 0.82 / 21) },
+        carbon: carbonResponse.data || {
+          co2_saved_kg: Math.round(annualGenerationKwh * 0.82),
+          tree_equivalent: Math.round(annualGenerationKwh * 0.82 / 21),
+        },
         seasonalBreakdown,
         userInput: {
           location: formData.city,
@@ -318,6 +327,7 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
           area: formData.rooftopArea,
           rooftopArea: formData.rooftopArea,
           state: formData.state,
+          goal: formData.goal,
         },
       };
 
@@ -338,67 +348,113 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
   };
 
   return (
-    <div className="solar-form-wrapper">
-      <form className="solis-control-form" onSubmit={handleSubmit}>
-        <div className="form-head-block">
-          <div className="form-badge">
-            <Sparkles size={13} />
-            <span>SOLAR ASSESSMENT CONTROL</span>
-          </div>
-          <h2 className="form-main-heading">Input Rooftop Parameters</h2>
-          <p className="form-sub-heading">
-            Our AI engine computes solar irradiance & payback in real-time.
+    <div className="guided-form-container">
+      <form className="guided-advisor-form" onSubmit={handleSubmit}>
+        {/* Editorial Section Header */}
+        <div className="guided-form-header">
+          <span className="guided-mono-kicker">STEP-BY-STEP ADVISOR</span>
+          <h2 className="guided-main-title">Let's understand your home.</h2>
+          <p className="guided-subtext">
+            Configure your property parameters to generate a precision machine learning forecast.
           </p>
         </div>
 
-        {/* Quick City Pills */}
-        <div className="quick-city-pills">
-          <span className="quick-label">Popular:</span>
-          {quickCities.map((c) => (
-            <button
-              type="button"
-              key={c}
-              className={`city-pill ${formData.city === c ? 'active' : ''}`}
-              onClick={() => setQuickCity(c)}
-              disabled={loading}
-            >
-              {c}
-            </button>
-          ))}
+        {/* ======================================================== */}
+        {/* STEP 1: LOCATION                                         */}
+        {/* ======================================================== */}
+        <div className="form-guided-step">
+          <div className="step-tag-row">
+            <span className="step-mono-badge">01</span>
+            <span className="step-name">LOCATION & CLIMATE</span>
+          </div>
+          <h3 className="step-question">Where is your property located?</h3>
+
+          <div className="form-field-group">
+            <label htmlFor="city-input" className="sr-only">City</label>
+            <div className="input-affix-wrap">
+              <MapPin size={16} className="input-icon" />
+              <input
+                id="city-input"
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                placeholder="e.g. New Delhi, Mumbai, Jaipur"
+                required
+                disabled={loading}
+                className="solis-editorial-input"
+              />
+            </div>
+
+            {/* Popular quick-select pills */}
+            <div className="quick-city-strip">
+              <span className="strip-label">Popular cities:</span>
+              <div className="strip-pills">
+                {quickCities.map((c) => (
+                  <button
+                    type="button"
+                    key={c}
+                    className={`city-select-pill ${formData.city === c ? 'active' : ''}`}
+                    onClick={() => setQuickCity(c)}
+                    disabled={loading}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Input Fields Grid */}
-        <div className="form-fields-grid">
-          {/* City */}
-          <div className="form-group full-width">
-            <label htmlFor="city-input">
-              <div className="label-title">
-                <MapPin size={15} className="label-icon" />
-                <span>City / Geographic Location</span>
-              </div>
-            </label>
-            <input
-              id="city-input"
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              placeholder="e.g. New Delhi, Mumbai, Jaipur"
-              required
-              disabled={loading}
-              className="solis-input"
-            />
+        {/* ======================================================== */}
+        {/* STEP 2: ROOFTOP SPACE                                    */}
+        {/* ======================================================== */}
+        <div className="form-guided-step">
+          <div className="step-tag-row">
+            <span className="step-mono-badge">02</span>
+            <span className="step-name">ROOFTOP DIMENSIONS</span>
           </div>
+          <h3 className="step-question">How much usable space can we use?</h3>
 
-          {/* Monthly Bill */}
-          <div className="form-group">
-            <label htmlFor="bill-input">
-              <div className="label-title">
-                <IndianRupee size={15} className="label-icon" />
-                <span>Monthly Power Bill (₹)</span>
-              </div>
-            </label>
-            <div className="input-with-action">
+          <div className="form-field-group">
+            <label htmlFor="area-input" className="sr-only">Rooftop Area</label>
+            <div className="input-affix-wrap">
+              <Maximize2 size={16} className="input-icon" />
+              <input
+                id="area-input"
+                type="number"
+                min="50"
+                step="any"
+                name="rooftopArea"
+                value={formData.rooftopArea}
+                onChange={handleChange}
+                placeholder="e.g. 600"
+                required
+                disabled={loading}
+                className="solis-editorial-input"
+              />
+              <span className="input-suffix">sq ft</span>
+            </div>
+            <p className="input-help-text">
+              Include flat roof or pitched south-facing surfaces without significant tree or building shadows.
+            </p>
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* STEP 3: ENERGY BILL                                      */}
+        {/* ======================================================== */}
+        <div className="form-guided-step">
+          <div className="step-tag-row">
+            <span className="step-mono-badge">03</span>
+            <span className="step-name">ENERGY CONSUMPTION</span>
+          </div>
+          <h3 className="step-question">What is your average monthly electricity bill?</h3>
+
+          <div className="form-field-group">
+            <label htmlFor="bill-input" className="sr-only">Monthly Electricity Bill</label>
+            <div className="input-affix-wrap">
+              <IndianRupee size={16} className="input-icon" />
               <input
                 id="bill-input"
                 type="number"
@@ -410,105 +466,127 @@ function SolarInputForm({ token, onResults, onHistoryRefresh }) {
                 placeholder="e.g. 3500"
                 required
                 disabled={loading}
-                className="solis-input with-btn"
+                className="solis-editorial-input with-mic"
               />
               {speechSupported && (
                 <button
                   type="button"
-                  className={`voice-mic-btn ${listening ? 'is-listening' : ''}`}
+                  className={`voice-record-btn ${listening ? 'listening' : ''}`}
                   onClick={startVoiceInput}
                   disabled={listening || loading}
-                  title="Speak your monthly bill amount"
+                  title="Speak bill amount"
                   aria-label="Use voice input for electricity bill"
                 >
-                  {listening ? <MicOff size={16} /> : <Mic size={16} />}
+                  {listening ? <MicOff size={15} /> : <Mic size={15} />}
                 </button>
               )}
             </div>
             {voiceStatus && (
-              <span className="form-voice-note">{voiceStatus}</span>
+              <span className="voice-status-note">{voiceStatus}</span>
             )}
-          </div>
-
-          {/* Rooftop Area */}
-          <div className="form-group">
-            <label htmlFor="area-input">
-              <div className="label-title">
-                <Maximize2 size={15} className="label-icon" />
-                <span>Rooftop Area (sq ft)</span>
-              </div>
-            </label>
-            <input
-              id="area-input"
-              type="number"
-              min="50"
-              step="any"
-              name="rooftopArea"
-              value={formData.rooftopArea}
-              onChange={handleChange}
-              placeholder="e.g. 600"
-              required
-              disabled={loading}
-              className="solis-input"
-            />
-          </div>
-
-          {/* State */}
-          <div className="form-group full-width">
-            <label htmlFor="state-select">
-              <div className="label-title">
-                <Building size={15} className="label-icon" />
-                <span>State (for Subsidy & Net Metering Policy)</span>
-              </div>
-            </label>
-            <select
-              id="state-select"
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              className="solis-select"
-            >
-              {states.map((st) => (
-                <option key={st} value={st}>
-                  {st}
-                </option>
-              ))}
-            </select>
+            <p className="input-help-text">
+              Used to calculate current tariff slabs, offset ratio, and 25-year cumulative inflation hedges.
+            </p>
           </div>
         </div>
 
-        {/* Submit Action */}
-        <button
-          type="submit"
-          className="solis-btn solis-btn-primary form-submit-btn"
-          disabled={loading}
-        >
-          {loading ? (
-            <div className="btn-loading-content">
-              <span className="solis-spinner" />
-              <span>
-                {loadingStep === 1 && 'Querying Solar Satellite Data...'}
-                {loadingStep === 2 && 'Executing Random Forest AI Model...'}
-                {loadingStep === 3 && 'Calculating 25-Year ROI & Subsidies...'}
-                {loadingStep === 4 && 'Synthesizing Carbon Intelligence...'}
-                {loadingStep === 0 && 'Analyzing Solar Potential...'}
-              </span>
+        {/* ======================================================== */}
+        {/* STEP 4: STATE POLICY & SUBSIDIES                         */}
+        {/* ======================================================== */}
+        <div className="form-guided-step">
+          <div className="step-tag-row">
+            <span className="step-mono-badge">04</span>
+            <span className="step-name">POLICY & SUBSIDY GRANTS</span>
+          </div>
+          <h3 className="step-question">Which state policy applies to your property?</h3>
+
+          <div className="form-field-group">
+            <label htmlFor="state-select" className="sr-only">State</label>
+            <div className="input-affix-wrap">
+              <Building size={16} className="input-icon" />
+              <select
+                id="state-select"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="solis-editorial-select"
+              >
+                {states.map((st) => (
+                  <option key={st} value={st}>
+                    {st} State Solar Policy & Net Metering
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <div className="btn-normal-content">
-              <Flame size={18} />
-              <span>ANALYZE SOLAR POTENTIAL</span>
-              <ArrowRight size={16} />
-            </div>
-          )}
-        </button>
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* STEP 5: PRIMARY OBJECTIVE                                */}
+        {/* ======================================================== */}
+        <div className="form-guided-step">
+          <div className="step-tag-row">
+            <span className="step-mono-badge">05</span>
+            <span className="step-name">PRIMARY GOAL</span>
+          </div>
+          <h3 className="step-question">What do you want most from solar?</h3>
+
+          <div className="goals-options-grid">
+            {solarGoals.map((g) => {
+              const IconComp = g.icon;
+              const isSelected = formData.goal === g.id;
+              return (
+                <button
+                  type="button"
+                  key={g.id}
+                  className={`goal-option-card ${isSelected ? 'selected' : ''}`}
+                  onClick={() => setFormData((prev) => ({ ...prev, goal: g.id }))}
+                  disabled={loading}
+                >
+                  <div className="goal-card-top">
+                    <IconComp size={16} className="goal-icon" />
+                    <strong>{g.label}</strong>
+                  </div>
+                  <p className="goal-card-desc">{g.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Submit Action Button */}
+        <div className="guided-form-actions">
+          <button
+            type="submit"
+            className="solis-btn solis-btn-primary form-cta-btn"
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="btn-loading-state">
+                <span className="solis-spinner" />
+                <span>
+                  {loadingStep === 1 && 'Querying satellite radiation data...'}
+                  {loadingStep === 2 && 'Executing Random Forest AI model...'}
+                  {loadingStep === 3 && 'Calculating 25-year financial payback...'}
+                  {loadingStep === 4 && 'Synthesizing carbon offsets...'}
+                  {loadingStep === 0 && 'Analyzing rooftop potential...'}
+                </span>
+              </div>
+            ) : (
+              <div className="btn-ready-state">
+                <span>Calculate My Solar Potential</span>
+                <ArrowRight size={15} />
+              </div>
+            )}
+          </button>
+        </div>
 
         {/* Error Feedback */}
         {error && (
-          <div className="solis-form-error">
-            <AlertCircle size={17} className="error-icon" />
+          <div className="editorial-form-error" role="alert">
+            <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}

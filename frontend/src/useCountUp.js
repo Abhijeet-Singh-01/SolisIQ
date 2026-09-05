@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 
-function useCountUp(target, duration = 1200, decimals = 0) {
+function useCountUp(target, optionsOrDuration = 1000, maybeDecimals = 0) {
+  let duration = 1000;
+  let decimals = 0;
+  if (typeof optionsOrDuration === 'object' && optionsOrDuration !== null) {
+    duration = optionsOrDuration.duration ?? 1000;
+    decimals = optionsOrDuration.decimals ?? 0;
+  } else {
+    duration = Number(optionsOrDuration) || 1000;
+    decimals = Number(maybeDecimals) || 0;
+  }
+
   const [value, setValue] = useState(0);
   const animationRef = useRef(null);
 

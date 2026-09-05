@@ -51,54 +51,52 @@ function AdminLoginPage({ onAdminLogin }) {
       </div>
 
       <div className="admin-login-box-wrapper">
-        <div className="solis-card admin-auth-card">
-          <div className="admin-auth-head">
-            <div className="admin-shield-icon">
-              <ShieldCheck size={28} />
-            </div>
-            <h1 className="admin-title">Admin Management Console</h1>
-            <p className="admin-subtitle">Authenticate with administrative credentials.</p>
+        <div className="auth-editorial-card admin-auth-card">
+          <div className="auth-form-head">
+            <span className="auth-mono-kicker">INTERNAL OPERATIONS</span>
+            <h1 className="auth-form-title">Admin Console</h1>
+            <p className="auth-form-sub">Authenticate with privileged administrative credentials.</p>
           </div>
 
-          <form className="auth-actual-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="admin-email">
-                <div className="label-title">
-                  <Mail size={15} className="label-icon" />
-                  <span>Admin Email</span>
-                </div>
+          <form className="auth-form-body" onSubmit={handleSubmit}>
+            <div className="form-field-group">
+              <label htmlFor="admin-email" className="field-label">
+                Admin Email
               </label>
-              <input
-                id="admin-email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="admin@solisiq.internal"
-                required
-                disabled={loading}
-                className="solis-input"
-              />
+              <div className="input-affix-wrap">
+                <Mail size={16} className="input-icon" />
+                <input
+                  id="admin-email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="admin@solisiq.internal"
+                  required
+                  disabled={loading}
+                  className="solis-editorial-input"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="admin-password">
-                <div className="label-title">
-                  <Lock size={15} className="label-icon" />
-                  <span>Administrative Password</span>
-                </div>
+            <div className="form-field-group">
+              <label htmlFor="admin-password" className="field-label">
+                Administrative Password
               </label>
-              <input
-                id="admin-password"
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                className="solis-input"
-              />
+              <div className="input-affix-wrap">
+                <Lock size={16} className="input-icon" />
+                <input
+                  id="admin-password"
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                  className="solis-editorial-input"
+                />
+              </div>
             </div>
 
             <button
@@ -111,13 +109,13 @@ function AdminLoginPage({ onAdminLogin }) {
               ) : (
                 <>
                   <span>Authenticate Admin</span>
-                  <ArrowRight size={16} />
+                  <ArrowRight size={15} />
                 </>
               )}
             </button>
 
             {error && (
-              <div className="solis-form-error">
+              <div className="editorial-form-error" role="alert">
                 <AlertCircle size={16} />
                 <span>{error}</span>
               </div>

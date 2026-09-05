@@ -20,7 +20,6 @@ import {
   IndianRupee,
   Maximize2,
   Clock,
-  Flame,
   Award,
 } from 'lucide-react';
 import {
@@ -63,7 +62,7 @@ function Dashboard({ results }) {
     state_subsidy_percent = 0,
   } = roi;
 
-  // Tickers are always called unconditionally on every render
+  // Tickers called unconditionally
   const animatedMonthlySavings = useCountUp(estimated_monthly_savings, { duration: 900, decimals: 0 });
   const animatedAnnualSavings = useCountUp(annual_savings, { duration: 900, decimals: 0 });
   const animatedLifetimeSavings = useCountUp(lifetime_savings_25_years, { duration: 900, decimals: 0 });
@@ -77,20 +76,20 @@ function Dashboard({ results }) {
   // Early return for empty state happens AFTER all hooks are invoked
   if (!hasResults) {
     return (
-      <div className="dashboard-empty-card">
-        <div className="empty-card-inner">
-          <div className="empty-icon-wrap">
-            <Sun size={36} className="empty-sun" />
-            <div className="empty-pulse-glow" />
+      <div className="dashboard-awaiting-container">
+        <div className="awaiting-content-card">
+          <div className="awaiting-icon-wrap">
+            <Sun size={32} className="text-solar" />
           </div>
-          <h3>Awaiting Assessment Parameters</h3>
-          <p>
-            Configure your location, monthly bill, and rooftop area in the left panel to trigger the neural forecasting model and unlock your live solar assessment.
+          <span className="awaiting-mono-kicker">SYSTEM READY</span>
+          <h3 className="awaiting-heading">Awaiting Assessment Parameters</h3>
+          <p className="awaiting-subtext">
+            Specify your geographic location, monthly bill, and rooftop dimensions in the advisor panel to run the Random Forest machine learning model.
           </p>
-          <div className="empty-badges-row">
-            <span className="empty-badge">☀️ 25-Year Savings</span>
-            <span className="empty-badge">⚡ Solar Output</span>
-            <span className="empty-badge">💰 Government Subsidy</span>
+          <div className="awaiting-tags-row">
+            <span className="awaiting-tag">Open-Meteo Telemetry</span>
+            <span className="awaiting-tag">25-Year Payback</span>
+            <span className="awaiting-tag">PM Surya Ghar Subsidy</span>
           </div>
         </div>
       </div>
@@ -99,7 +98,7 @@ function Dashboard({ results }) {
 
   const systemCostEstimate = Number(system_cost || (Number(recommended_capacity_kw || 0) * 60000));
   const paybackProgress = payback_period_years > 0 ? Math.min(100, Math.max(12, (1 / payback_period_years) * 100)) : 100;
-  const breakEvenLabel = payback_period_years > 0 ? `around Year ${Math.ceil(payback_period_years)}` : 'within the first year';
+  const breakEvenLabel = payback_period_years > 0 ? `Year ${Math.ceil(payback_period_years)}` : 'Year 1';
 
   // Monthly savings chart data
   const monthlySavingsData = Array.from({ length: 12 }, (_, index) => ({
@@ -167,10 +166,10 @@ function Dashboard({ results }) {
         document.execCommand('copy');
         document.body.removeChild(tempTextArea);
       }
-      setCopyMessage('Summary copied to clipboard!');
+      setCopyMessage('Summary copied to clipboard');
       window.setTimeout(() => setCopyMessage(''), 3000);
     } catch {
-      setCopyMessage('Could not copy summary.');
+      setCopyMessage('Could not copy summary');
     }
   };
 
@@ -198,340 +197,289 @@ function Dashboard({ results }) {
   };
 
   return (
-    <div className="solis-dashboard-content">
+    <div className="editorial-console-wrapper">
       {/* ======================================================== */}
-      {/* 1. EXECUTIVE REPORT HERO BANNER                           */}
+      {/* 1. REPORT HEADER & TOP-LEVEL ACTIONS                      */}
       {/* ======================================================== */}
-      <section className="dashboard-exec-hero">
-        <div className="exec-hero-glow" />
-
-        <div className="exec-hero-header">
-          <div className="exec-title-block">
-            <div className="exec-badge">
-              <Sparkles size={13} />
-              <span>ASSESSMENT SYNTHESIS</span>
-            </div>
-            <h2 className="exec-main-title">Comprehensive Rooftop Solar Intelligence</h2>
-            <p className="exec-subtext">
-              Engineered evaluation for {results.userInput?.city || results.userInput?.location || 'your home'} in {results.userInput?.state || 'India'}.
-            </p>
-          </div>
-
-          <div className="exec-actions-block">
-            <div className="exec-capacity-pill">
-              <span className="cap-label">Recommended Scale</span>
-              <strong className="cap-value">{animatedCapacity} kW System</strong>
-            </div>
-
-            <div className="exec-btn-row">
-              <button
-                type="button"
-                className="solis-btn solis-btn-secondary exec-copy-btn"
-                onClick={handleCopySummary}
-              >
-                {copyMessage ? <Check size={16} className="text-emerald" /> : <Copy size={16} />}
-                <span>{copyMessage || 'Share Summary'}</span>
-              </button>
-
-              <button
-                type="button"
-                className="solis-btn solis-btn-primary exec-download-btn"
-                onClick={handleDownload}
-                disabled={downloading}
-              >
-                {downloading ? (
-                  <span className="solis-spinner" />
-                ) : (
-                  <Download size={16} />
-                )}
-                <span>{downloading ? 'Compiling PDF...' : 'Download Full PDF Report'}</span>
-              </button>
-            </div>
-          </div>
+      <div className="report-header-banner">
+        <div className="report-meta-group">
+          <span className="report-mono-kicker">SOLISIQ ENERGY REPORT</span>
+          <h2 className="report-main-heading">Comprehensive Rooftop Solar Intelligence</h2>
+          <p className="report-location-sub">
+            Evaluated for {results.userInput?.city || results.userInput?.location || 'Property'} • {results.userInput?.state || 'India'}
+          </p>
         </div>
 
-        {downloadError && (
-          <p className="dashboard-inline-error">{downloadError}</p>
-        )}
+        <div className="report-actions-row">
+          <button
+            type="button"
+            className="solis-btn solis-btn-secondary console-action-btn"
+            onClick={handleCopySummary}
+          >
+            {copyMessage ? <Check size={14} className="text-emerald" /> : <Copy size={14} />}
+            <span>{copyMessage || 'Share Summary'}</span>
+          </button>
 
-        {/* Highlight Summary Stats */}
-        <div className="exec-kpi-summary-grid">
-          <div className="exec-kpi-card highlight-kpi">
-            <span className="kpi-tag">ESTIMATED INVESTMENT</span>
-            <strong className="kpi-large-num">₹{Math.round(systemCostEstimate).toLocaleString('en-IN')}</strong>
-            <span className="kpi-caption">
-              Gross investment ({state_subsidy_percent > 0 ? `${state_subsidy_percent}% state subsidy eligible` : 'Subsidies applicable'})
-            </span>
-          </div>
-
-          <div className="exec-kpi-card">
-            <span className="kpi-tag">PAYBACK TIMELINE</span>
-            <strong className="kpi-large-num">{Number(payback_period_years).toFixed(1)} Years</strong>
-            <span className="kpi-caption">Break-even achieved {breakEvenLabel}</span>
-          </div>
-
-          <div className="exec-kpi-card green-kpi">
-            <span className="kpi-tag">ANNUAL WEALTH IMPACT</span>
-            <strong className="kpi-large-num">₹{Number(annual_savings).toLocaleString('en-IN')}/yr</strong>
-            <span className="kpi-caption">Direct reduction in grid utility expenses</span>
-          </div>
+          <button
+            type="button"
+            className="solis-btn solis-btn-primary console-action-btn"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            {downloading ? (
+              <span className="solis-spinner" />
+            ) : (
+              <Download size={14} />
+            )}
+            <span>{downloading ? 'Compiling PDF...' : 'Download Full Report'}</span>
+          </button>
         </div>
-      </section>
+      </div>
+
+      {downloadError && (
+        <div className="editorial-form-error" role="alert">
+          <span>{downloadError}</span>
+        </div>
+      )}
 
       {/* ======================================================== */}
-      {/* 2. 10-METRIC EDITORIAL KPI GRID                          */}
+      {/* 2. FOUR DOMINANT METRICS                                  */}
       {/* ======================================================== */}
-      <section className="dashboard-metrics-section">
-        <div className="section-head-mini">
-          <h3 className="section-mini-title">System Metrics & Financial Return</h3>
-          <p className="section-mini-desc">Complete financial and environmental assessment summary.</p>
+      <section className="dominant-metrics-grid">
+        <div className="dominant-metric-cell highlight">
+          <span className="cell-kicker">RECOMMENDED SYSTEM SIZE</span>
+          <div className="cell-number-row">
+            <strong className="dominant-number">{animatedCapacity}</strong>
+            <span className="dominant-unit">kW</span>
+          </div>
+          <span className="cell-caption">
+            Optimized for ~{Math.round(animatedUnits)} kWh/month domestic consumption
+          </span>
         </div>
 
-        <div className="metrics-cards-grid">
-          <div className="metric-card energy-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Estimated Generation</span>
-              <Sun size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedUnits} <span className="metric-unit">kWh/mo</span></strong>
-            <span className="metric-foot">Clean rooftop power yield</span>
+        <div className="dominant-metric-cell">
+          <span className="cell-kicker">ESTIMATED CAPITAL COST</span>
+          <div className="cell-number-row">
+            <strong className="dominant-number">₹{Math.round(systemCostEstimate).toLocaleString('en-IN')}</strong>
           </div>
+          <span className="cell-caption">
+            {state_subsidy_percent > 0 ? `${state_subsidy_percent}% state subsidy eligible` : 'Central & state incentives applicable'}
+          </span>
+        </div>
 
-          <div className="metric-card energy-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">System Sizing</span>
-              <Cpu size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedCapacity} <span className="metric-unit">kW</span></strong>
-            <span className="metric-foot">Optimized for rooftop profile</span>
+        <div className="dominant-metric-cell">
+          <span className="cell-kicker">ANNUAL TARIFF SAVINGS</span>
+          <div className="cell-number-row">
+            <strong className="dominant-number">₹{Number(animatedAnnualSavings).toLocaleString('en-IN')}</strong>
+            <span className="dominant-unit">/yr</span>
           </div>
+          <span className="cell-caption">
+            Direct reduction in monthly power utility tariff expense
+          </span>
+        </div>
 
-          <div className="metric-card energy-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Panels Required</span>
-              <Layers size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{number_of_panels} <span className="metric-unit">Panels</span></strong>
-            <span className="metric-foot">~400W Monocrystalline PERC</span>
+        <div className="dominant-metric-cell">
+          <span className="cell-kicker">PAYBACK HORIZON</span>
+          <div className="cell-number-row">
+            <strong className="dominant-number">{Number(payback_period_years).toFixed(1)}</strong>
+            <span className="dominant-unit">Years</span>
           </div>
-
-          <div className="metric-card energy-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Roof Area Required</span>
-              <Maximize2 size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedArea} <span className="metric-unit">sq ft</span></strong>
-            <span className="metric-foot">Usable shadow-free space</span>
-          </div>
-
-          <div className="metric-card financial-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Monthly Savings</span>
-              <TrendingUp size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">₹{animatedMonthlySavings}</strong>
-            <span className="metric-foot">Average monthly tariff drop</span>
-          </div>
-
-          <div className="metric-card financial-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Annual Savings</span>
-              <IndianRupee size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">₹{Number(animatedAnnualSavings).toLocaleString('en-IN')}</strong>
-            <span className="metric-foot">Direct yearly wallet savings</span>
-          </div>
-
-          <div className="metric-card financial-metric highlight">
-            <div className="metric-card-top">
-              <span className="metric-label">25-Year Savings</span>
-              <Award size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">₹{Number(animatedLifetimeSavings).toLocaleString('en-IN')}</strong>
-            <span className="metric-foot">Cumulative asset value</span>
-          </div>
-
-          <div className="metric-card financial-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">Payback Horizon</span>
-              <Clock size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedPayback} <span className="metric-unit">Years</span></strong>
-            <span className="metric-foot">100% investment recouped</span>
-          </div>
-
-          <div className="metric-card financial-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">25-Year Net ROI</span>
-              <TrendingUp size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedROI}%</strong>
-            <span className="metric-foot">Outperforms traditional funds</span>
-          </div>
-
-          <div className="metric-card environmental-metric">
-            <div className="metric-card-top">
-              <span className="metric-label">CO₂ Offset / Year</span>
-              <Leaf size={17} className="metric-icon" />
-            </div>
-            <strong className="metric-value">{animatedCO2} <span className="metric-unit">kg</span></strong>
-            <span className="metric-foot">≈ {treeEquivalent} trees absorbing CO₂</span>
-          </div>
+          <span className="cell-caption">
+            Break-even reached around {breakEvenLabel}, pure profit thereafter
+          </span>
         </div>
       </section>
 
       {/* ======================================================== */}
-      {/* 3. ROOF LAYOUT & PAYBACK TIMELINE SECTION                */}
+      {/* 3. DYNAMIC ROOFTOP SOLAR PANEL VISUALIZER                */}
       {/* ======================================================== */}
-      <section className="dashboard-visuals-dual-grid">
-        {/* Rooftop Solar Layout */}
-        <div className="solis-card visual-card">
-          <div className="visual-card-head">
+      <section className="console-visualizer-section">
+        <div className="visualizer-editorial-card">
+          <div className="visualizer-header">
             <div>
-              <h3>Rooftop Panel Layout</h3>
-              <p>{`Illustrative schematic showing ${actualPanelCount} photovoltaic panels (~${panelWattage}W each) optimized for your roof.`}</p>
+              <span className="card-mono-kicker">ROOFTOP ARRAY MODEL</span>
+              <h3 className="visualizer-title">Rooftop Panel Layout</h3>
+              <p className="visualizer-desc">
+                Architectural layout rendering exactly {actualPanelCount} high-efficiency monocrystalline panels (~{panelWattage}W each) on your roof surface.
+              </p>
             </div>
-            <div className="visual-head-stat">
-              <span className="stat-highlight">{`${actualPanelCount} Panels`}</span>
-              <span>{userRoofArea > 0 ? `${userRoofArea.toLocaleString('en-IN')} sq ft available` : `${Math.round(requiredArrayArea).toLocaleString('en-IN')} sq ft array`}</span>
+            <div className="visualizer-head-pill">
+              <span className="pill-strong">{`${actualPanelCount} Panels`}</span>
+              <span className="pill-sub">
+                {userRoofArea > 0 ? `${userRoofArea.toLocaleString('en-IN')} sq ft available` : `${Math.round(requiredArrayArea)} sq ft array`}
+              </span>
             </div>
           </div>
 
-          <div className="roof-visual-container">
-            <div className="roof-panels-grid">
+          {/* Dynamic Panel Grid */}
+          <div className="rooftop-canvas-container">
+            <div className="rooftop-panels-flex-grid">
               {panelsArray.map((panel) => (
                 <div
                   key={panel.id}
-                  className="roof-solar-panel-card"
-                  title={`Solar Panel #${panel.id} • ${panelWattage}W Monocrystalline PERC`}
+                  className="rooftop-panel-unit"
+                  title={`Photovoltaic Panel #${panel.id} • ${panelWattage}W Monocrystalline PERC`}
                 >
-                  <span className="panel-grid-texture" />
-                  <span className="panel-spec-chip">{`#${panel.id}`}</span>
+                  <div className="panel-cell-lines" />
+                  <span className="panel-number-label">#{panel.id}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="roof-caption-bar">
-            <div className="roof-stat-item">
-              <span className="stat-dot panel-dot" />
-              <span><strong>{actualPanelCount}</strong>{` panels (~${panelWattage}W each)`}</span>
+          {/* Rooftop Specs Bar */}
+          <div className="rooftop-specs-bar">
+            <div className="spec-metric-item">
+              <span className="spec-bullet panel" />
+              <span><strong>{actualPanelCount}</strong>{` panels`}</span>
             </div>
-            {remainingRoofArea !== null ? (
-              <div className="roof-stat-item">
-                <span className="stat-dot avail-dot" />
-                <span><strong>{`${remainingRoofArea.toLocaleString('en-IN')} sq ft`}</strong> available</span>
-              </div>
-            ) : (
-              <div className="roof-stat-item">
-                <span className="stat-dot avail-dot" />
-                <span><strong>{`${Math.round(requiredArrayArea).toLocaleString('en-IN')} sq ft`}</strong> array</span>
+            <div className="spec-metric-item">
+              <span className="spec-bullet array" />
+              <span><strong>{`${Math.round(requiredArrayArea).toLocaleString('en-IN')} sq ft`}</strong>{` array footprint`}</span>
+            </div>
+            {remainingRoofArea !== null && (
+              <div className="spec-metric-item">
+                <span className="spec-bullet remaining" />
+                <span><strong>{`${remainingRoofArea.toLocaleString('en-IN')} sq ft`}</strong>{` available`}</span>
               </div>
             )}
             {roofCoveragePercent !== null && (
-              <div className="roof-stat-item">
-                <span className="stat-dot coverage-dot" />
-                <span><strong>{`${roofCoveragePercent}%`}</strong> roof coverage</span>
+              <div className="spec-metric-item">
+                <span className="spec-bullet coverage" />
+                <span><strong>{`${roofCoveragePercent}%`}</strong>{` roof coverage`}</span>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Payback Progress & Environmental Tree Equiv */}
-        <div className="solis-card visual-card">
-          <div className="visual-card-head">
-            <div>
-              <h3>Capital Recovery Timeline</h3>
-              <p>Break-even progression modeled against local tariff inflation.</p>
-            </div>
-            <span className="payback-badge">{Number(payback_period_years).toFixed(1)} Yrs Break-even</span>
-          </div>
-
-          <div className="payback-timeline-box">
-            <div className="timeline-bar-track">
-              <div
-                className="timeline-bar-fill"
-                style={{ width: `${paybackProgress}%` }}
-              />
-            </div>
-            <div className="timeline-labels-row">
-              <span>Year 0 (Install)</span>
-              <span>Year {Math.ceil(payback_period_years)} (Break-even)</span>
-              <span>Year 25 (Pure Profit)</span>
-            </div>
-          </div>
-
-          {/* Environmental Tree Offset Box */}
-          <div className="tree-offset-banner">
-            <div className="tree-offset-icon">
-              <Leaf size={28} />
-            </div>
-            <div className="tree-offset-text">
-              <h4>Equivalent to Planting {treeEquivalent} Trees Yearly</h4>
-              <p>
-                Your rooftop installation prevents {Number(carbon.co2_saved_kg || 0).toLocaleString('en-IN')} kg of greenhouse gases from entering the atmosphere every single year.
-              </p>
-            </div>
           </div>
         </div>
       </section>
 
       {/* ======================================================== */}
-      {/* 4. CHARTS & REVIEWS SECTION                              */}
+      {/* 4. SUPPORTING TELEMETRY & ENVIRONMENTAL IMPACT           */}
       {/* ======================================================== */}
-      <section className="dashboard-charts-grid">
-        {/* Monthly Savings Bar Chart */}
-        <div className="solis-card chart-glass-card">
-          <div className="chart-head">
+      <section className="supporting-metrics-grid">
+        <div className="supporting-metric-card">
+          <span className="supp-kicker">Estimated Generation</span>
+          <strong className="supp-num">{animatedUnits} <span className="supp-unit">kWh/mo</span></strong>
+          <span className="supp-foot">Average clean rooftop output</span>
+        </div>
+
+        <div className="supporting-metric-card">
+          <span className="supp-kicker">MONTHLY BILL SAVINGS</span>
+          <strong className="supp-num">₹{animatedMonthlySavings}</strong>
+          <span className="supp-foot">Direct utility tariff reduction</span>
+        </div>
+
+        <div className="supporting-metric-card">
+          <span className="supp-kicker">25-YEAR CUMULATIVE WEALTH</span>
+          <strong className="supp-num">₹{Number(animatedLifetimeSavings).toLocaleString('en-IN')}</strong>
+          <span className="supp-foot">Net lifetime financial return</span>
+        </div>
+
+        <div className="supporting-metric-card">
+          <span className="supp-kicker">25-YEAR NET ROI</span>
+          <strong className="supp-num">{animatedROI}%</strong>
+          <span className="supp-foot">Internal rate of return</span>
+        </div>
+
+        <div className="supporting-metric-card green">
+          <span className="supp-kicker">CO₂ AVOIDED ANNUALLY</span>
+          <strong className="supp-num">{animatedCO2} <span className="supp-unit">kg</span></strong>
+          <span className="supp-foot">Zero tailpipe grid emissions</span>
+        </div>
+
+        <div className="supporting-metric-card green">
+          <span className="supp-kicker">FOREST ABSORPTION EQUIV.</span>
+          <strong className="supp-num">{treeEquivalent} <span className="supp-unit">Trees</span></strong>
+          <span className="supp-foot">Annual atmospheric carbon offset</span>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 5. CAPITAL RECOVERY TIMELINE                              */}
+      {/* ======================================================== */}
+      <section className="capital-recovery-banner">
+        <div className="recovery-head">
+          <div>
+            <span className="card-mono-kicker">CAPITAL AMORTIZATION</span>
+            <h3 className="recovery-title">Capital Recovery Timeline</h3>
+          </div>
+          <span className="recovery-badge">{Number(payback_period_years).toFixed(1)} Yrs to Break-even</span>
+        </div>
+
+        <div className="recovery-track">
+          <div
+            className="recovery-fill-bar"
+            style={{ width: `${paybackProgress}%` }}
+          />
+        </div>
+
+        <div className="recovery-milestones">
+          <span>Year 0 (Installation)</span>
+          <span>Year {Math.ceil(payback_period_years)} (100% Recouped)</span>
+          <span>Year 25 (Pure Net Profit)</span>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 6. FINANCIAL & SOLAR ANALYTICS CHARTS                    */}
+      {/* ======================================================== */}
+      <section className="console-charts-grid">
+        {/* Monthly Financial Savings Bar Chart */}
+        <div className="console-chart-card">
+          <div className="chart-header-block">
             <h3>Monthly Financial Savings Projection</h3>
             <p>Anticipated power bill savings across all 12 calendar months.</p>
           </div>
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlySavingsData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="month" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <CartesianGrid stroke="rgba(74, 74, 74, 0.08)" vertical={false} />
+                <XAxis dataKey="month" stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
+                <YAxis stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#0d1322',
-                    border: '1px solid rgba(255,140,50,0.3)',
-                    borderRadius: '10px',
-                    color: '#f8fafc',
+                    background: '#4A4A4A',
+                    border: '1px solid rgba(226, 180, 189, 0.3)',
+                    borderRadius: '8px',
+                    color: '#FFF5F5',
+                    fontSize: '12px',
+                    fontFamily: 'Inter',
                   }}
-                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Monthly Savings']}
+                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Savings']}
                 />
-                <Bar dataKey="savings" fill="#ff7a1a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="savings" fill="#E2B4BD" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* 25-Year Cumulative Wealth Curve */}
-        <div className="solis-card chart-glass-card">
-          <div className="chart-head">
+        <div className="console-chart-card">
+          <div className="chart-header-block">
             <h3>25-Year Cumulative Wealth Accumulation</h3>
-            <p>Net financial savings after accounting for initial capital expenditure.</p>
+            <p>Net financial savings after accounting for capital expenditure.</p>
           </div>
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={yearlySavings}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="year" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <CartesianGrid stroke="rgba(74, 74, 74, 0.08)" vertical={false} />
+                <XAxis dataKey="year" stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
+                <YAxis stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#0d1322',
-                    border: '1px solid rgba(16,185,129,0.3)',
-                    borderRadius: '10px',
-                    color: '#f8fafc',
+                    background: '#4A4A4A',
+                    border: '1px solid rgba(226, 180, 189, 0.3)',
+                    borderRadius: '8px',
+                    color: '#FFF5F5',
+                    fontSize: '12px',
+                    fontFamily: 'Inter',
                   }}
-                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Net Wealth Gain']}
+                  formatter={(val) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Net Wealth']}
                 />
                 <Line
                   type="monotone"
                   dataKey="netSavings"
-                  stroke="#10b981"
+                  stroke="#4A4A4A"
                   strokeWidth={2.5}
                   dot={false}
                 />
@@ -541,67 +489,71 @@ function Dashboard({ results }) {
         </div>
 
         {/* Before vs After Energy Costs */}
-        <div className="solis-card chart-glass-card">
-          <div className="chart-head">
+        <div className="console-chart-card">
+          <div className="chart-header-block">
             <h3>Utility Expense: Before vs. After Solar</h3>
             <p>Contrasting grid tariff expenditure against optimized solar rooftop bills.</p>
           </div>
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={beforeAfterData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="period" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <CartesianGrid stroke="rgba(74, 74, 74, 0.08)" vertical={false} />
+                <XAxis dataKey="period" stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
+                <YAxis stroke="#7A7A7A" tick={{ fill: '#5C5C5C', fontSize: 11, fontFamily: 'Inter' }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#0d1322',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '10px',
-                    color: '#f8fafc',
+                    background: '#4A4A4A',
+                    border: '1px solid rgba(226, 180, 189, 0.3)',
+                    borderRadius: '8px',
+                    color: '#FFF5F5',
+                    fontSize: '12px',
+                    fontFamily: 'Inter',
                   }}
                   formatter={(val, name) => [`₹${val}`, name === 'withoutSolar' ? 'Without Solar' : 'With SolisIQ']}
                 />
                 <Legend />
-                <Bar dataKey="withoutSolar" fill="#475569" name="Without Solar" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="withSolar" fill="#10b981" name="With SolisIQ" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="withoutSolar" fill="#7A7A7A" name="Grid Tariff Only" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="withSolar" fill="#E2B4BD" name="With SolisIQ" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Seasonal Output Variation */}
-        <div className="solis-card chart-glass-card">
-          <div className="chart-head">
+        <div className="console-chart-card">
+          <div className="chart-header-block">
             <h3>Seasonal Solar Generation Curve</h3>
             <p>Historical Open-Meteo monthly solar radiation output variance.</p>
           </div>
-          <div style={{ width: '100%', height: 260 }}>
+          <div style={{ width: '100%', height: 240 }}>
             {seasonalData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={seasonalData}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="month" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <CartesianGrid stroke="rgba(244, 245, 238, 0.06)" vertical={false} />
+                  <XAxis dataKey="month" stroke="rgba(244, 245, 238, 0.4)" tick={{ fill: 'rgba(244, 245, 238, 0.7)', fontSize: 11, fontFamily: 'Inter' }} />
+                  <YAxis stroke="rgba(244, 245, 238, 0.4)" tick={{ fill: 'rgba(244, 245, 238, 0.7)', fontSize: 11, fontFamily: 'Inter' }} />
                   <Tooltip
                     contentStyle={{
-                      background: '#0d1322',
-                      border: '1px solid rgba(59,130,246,0.3)',
-                      borderRadius: '10px',
-                      color: '#f8fafc',
+                      background: '#4A4A4A',
+                      border: '1px solid rgba(226, 180, 189, 0.3)',
+                      borderRadius: '8px',
+                      color: '#FFF5F5',
+                      fontSize: '12px',
+                      fontFamily: 'Inter',
                     }}
-                    formatter={(val) => [`${val} kWh/day`, 'Predicted Output']}
+                    formatter={(val) => [`${val} kWh/day`, 'Predicted Radiation Output']}
                   />
                   <Line
                     type="monotone"
                     dataKey="predicted"
-                    stroke="#3b82f6"
+                    stroke="#E2B4BD"
                     strokeWidth={2.5}
-                    dot={{ fill: '#3b82f6', r: 3 }}
+                    dot={{ fill: '#E2B4BD', r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="chart-no-data">
+              <div className="chart-empty-state">
                 <p>Seasonal radiation telemetry will update with live location data.</p>
               </div>
             )}
@@ -610,45 +562,45 @@ function Dashboard({ results }) {
       </section>
 
       {/* ======================================================== */}
-      {/* 5. METHODOLOGY & MATHEMATICAL ACCORDION                   */}
+      {/* 7. METHODOLOGY & MATHEMATICAL ACCORDION                   */}
       {/* ======================================================== */}
-      <section className="dashboard-accordion-section">
-        <div className="solis-card accordion-card">
+      <section className="console-accordion-section">
+        <div className="methodology-card">
           <button
             type="button"
             className="accordion-toggle-btn"
             onClick={() => setShowCalculationDetails((prev) => !prev)}
             aria-expanded={showCalculationDetails}
           >
-            <div className="accordion-title-wrap">
-              <Cpu size={18} className="text-solar" />
+            <div className="accordion-label-wrap">
+              <Cpu size={16} className="text-solar" />
               <span>How SolisIQ Calculates Your Financial & Energy Models</span>
             </div>
-            {showCalculationDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {showCalculationDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {showCalculationDetails && (
-            <div className="accordion-content-panel">
-              <div className="accordion-grid">
-                <div className="accordion-item">
+            <div className="accordion-body">
+              <div className="method-items-grid">
+                <div className="method-item">
                   <h4>1. Solar Irradiance Forecasting</h4>
                   <p>
                     We ingest coordinates from Open-Meteo geocoding to retrieve shortwave solar radiation (W/m²), ambient temperature, cloud cover, and relative humidity. Our trained Random Forest ensemble predicts net daily kWh generation.
                   </p>
                 </div>
-                <div className="accordion-item">
+                <div className="method-item">
                   <h4>2. System Sizing & Roof Constraints</h4>
                   <p>
                     Calculates required capacity as (Monthly Units / 30) / 4.0 kWh/kW/day, and ensures the system safely fits within available roof area assuming 10 m² (107.6 sq ft) per kW of modern 400W panels.
                   </p>
                 </div>
-                <div className="accordion-item">
+                <div className="method-item">
                   <h4>3. Financial Payback & Wealth Yield</h4>
                   <p>
                     Payback period is calculated against initial capital cost (₹60,000 / kW benchmark) minus applicable central & state subsidies (up to 40%), amortized against 25 years of guaranteed generation.
                   </p>
                 </div>
-                <div className="accordion-item">
+                <div className="method-item">
                   <h4>4. Carbon & Tree Offsets</h4>
                   <p>
                     Computed using standard Central Electricity Authority (CEA) grid emission factors of 0.82 kg CO₂ per kWh avoided, and 21 kg CO₂ per mature tree annual absorption.

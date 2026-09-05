@@ -1,18 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { downloadPdfReport } from './reportDownload';
 import {
-  History,
   Download,
   Trash2,
   Calendar,
   MapPin,
-  IndianRupee,
-  Clock,
-  FileText,
   AlertCircle,
+  ArrowRight,
 } from 'lucide-react';
 
-function CalculationHistory({ history, loading, error, onDelete }) {
+function CalculationHistory({ history, loading, error, onDelete, onStartNew }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [downloadError, setDownloadError] = useState('');
 
@@ -43,54 +40,67 @@ function CalculationHistory({ history, loading, error, onDelete }) {
   };
 
   return (
-    <div className="solis-card history-panel-card">
-      <div className="history-head">
-        <div className="history-head-title">
-          <History size={20} className="text-solar" />
-          <div>
-            <h3>Your Saved Calculations</h3>
-            <p>Historical rooftop assessments generated under your account.</p>
-          </div>
+    <div className="editorial-archive-card">
+      <div className="archive-header-row">
+        <div className="archive-title-group">
+          <span className="card-mono-kicker">YOUR SOLAR DECISIONS</span>
+          <h3 className="archive-title">Calculation History</h3>
+          <p className="archive-desc">Historical rooftop assessments and solar forecasts generated under your profile.</p>
         </div>
-        <span className="history-count-badge">
-          {history.length} {history.length === 1 ? 'Record' : 'Records'}
-        </span>
+        <div className="archive-count-badge">
+          <span>{history.length} {history.length === 1 ? 'Decision' : 'Decisions'}</span>
+        </div>
       </div>
 
       {loading && (
-        <div className="history-loading-box">
+        <div className="editorial-loading-box">
           <span className="solis-spinner" />
-          <p>Retrieving calculation records...</p>
+          <p>Retrieving calculation archive...</p>
         </div>
       )}
 
       {error && (
-        <div className="solis-form-error">
+        <div className="editorial-form-error" role="alert">
           <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       )}
 
       {downloadError && (
-        <div className="solis-form-error">
+        <div className="editorial-form-error" role="alert">
           <AlertCircle size={16} />
           <span>{downloadError}</span>
         </div>
       )}
 
       {!loading && !error && (
-        <div className="history-table-responsive">
+        <div className="archive-table-container">
           {history.length === 0 ? (
-            <div className="history-empty-view">
-              <p>No saved calculations found. Complete a rooftop assessment above to save it to your profile.</p>
+            <div className="editorial-empty-box">
+              <p>No calculations yet.</p>
+              <button
+                type="button"
+                className="solis-ghost-link"
+                onClick={() => {
+                  if (onStartNew) {
+                    onStartNew();
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+              >
+                <span>Run your first solar analysis</span>
+                <ArrowRight size={14} />
+              </button>
             </div>
           ) : (
-            <table className="solis-glass-table">
+            <table className="editorial-data-table">
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Location</th>
                   <th>Monthly Bill</th>
+                  <th>Daily Forecast</th>
                   <th>Estimated Savings</th>
                   <th>Payback</th>
                   <th className="text-right">Actions</th>
@@ -100,45 +110,48 @@ function CalculationHistory({ history, loading, error, onDelete }) {
                 {history.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <div className="history-date-cell">
-                        <Calendar size={14} className="cell-icon" />
+                      <div className="archive-date-cell">
+                        <Calendar size={13} className="cell-sub-icon" />
                         <span>{item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
                       </div>
                     </td>
                     <td>
-                      <div className="history-loc-cell">
-                        <MapPin size={14} className="cell-icon" />
-                        <strong>{item.city || 'Unknown'}</strong>
+                      <div className="archive-location-cell">
+                        <MapPin size={13} className="cell-sub-icon" />
+                        <strong>{item.city || 'Property'}</strong>
                       </div>
                     </td>
                     <td>
-                      <span className="cell-bill">₹{Number(item.monthly_bill || 0).toLocaleString('en-IN')}</span>
+                      <span className="num-mono">₹{Number(item.monthly_bill || 0).toLocaleString('en-IN')}</span>
                     </td>
                     <td>
-                      <span className="cell-savings">₹{Number(item.monthly_savings || 0).toLocaleString('en-IN')}/mo</span>
+                      <span className="num-mono">{item.predicted_output ? `${Number(item.predicted_output).toFixed(2)} kWh` : '—'}</span>
                     </td>
                     <td>
-                      <span className="cell-payback">{Number(item.payback_period || 0).toFixed(1)} Yrs</span>
+                      <span className="num-mono text-rose">₹{Number(item.monthly_savings || 0).toLocaleString('en-IN')}/mo</span>
+                    </td>
+                    <td>
+                      <span className="num-mono">{Number(item.payback_period || 0).toFixed(1)} Yrs</span>
                     </td>
                     <td className="text-right">
-                      <div className="history-action-btns">
+                      <div className="archive-actions-cell">
                         <button
                           type="button"
-                          className="action-btn report-btn"
+                          className="archive-action-btn export"
                           onClick={() => handleDownloadReport(item)}
                           disabled={downloadingId === item.id}
-                          title="Download PDF Report"
+                          title="Export PDF Report"
                         >
-                          <Download size={14} />
+                          <Download size={13} />
                           <span>{downloadingId === item.id ? 'Exporting...' : 'PDF'}</span>
                         </button>
                         <button
                           type="button"
-                          className="action-btn delete-btn"
+                          className="archive-action-btn delete"
                           onClick={() => onDelete(item.id)}
-                          title="Delete record"
+                          title="Remove from history"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>

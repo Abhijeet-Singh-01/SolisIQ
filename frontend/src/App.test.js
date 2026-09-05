@@ -21,8 +21,8 @@ describe('SolisIQ Premium Redesign Suite', () => {
   test('App component renders root cleanly', () => {
     const html = ReactDOMServer.renderToString(<App />);
     expect(html).toContain('SolisIQ');
-    expect(html).toContain('TURN YOUR');
-    expect(html).toContain('ROOFTOP INTO');
+    expect(html).toContain('Know what your');
+    expect(html).toContain('roof can generate');
   });
 
   test('HomePage renders hero, four-step method, and simulator', () => {
@@ -32,8 +32,9 @@ describe('SolisIQ Premium Redesign Suite', () => {
       </MemoryRouter>
     );
     expect(html).toContain('SolisIQ');
-    expect(html).toContain('TURN YOUR');
-    expect(html).toContain('ANALYZE MY SOLAR POTENTIAL');
+    expect(html).toContain('Know what your');
+    expect(html).toContain('roof can generate');
+    expect(html).toContain('Explore Solar Potential');
     expect(html).toContain('Solar Intelligence, Simplified');
     expect(html).toContain('Test Your Solar ROI Live');
   });
