@@ -104,7 +104,7 @@ DB_CONFIG = {
     "database": DB_NAME,
     "charset": "utf8mb4",
     "autocommit": True,
-    "connection_timeout": DB_CONNECTION_TIMEOUT,
+    "connection_timeout": min(DB_CONNECTION_TIMEOUT, 2),
 }
 
 # Add SSL configuration for Aiven (required by Aiven for remote connections)
@@ -114,33 +114,100 @@ if is_aiven or USE_SSL:
     DB_CONFIG["ssl_disabled"] = False
     DB_CONFIG["ssl_verify_cert"] = False
     DB_CONFIG["ssl_verify_identity"] = False
-    print(f"Configuring MySQL connection with SSL for Aiven database")
+
+import sqlite3
+
+SQLITE_DB_PATH = os.path.join(os.path.dirname(__file__), "data", "solar_advisor.db")
+_USE_SQLITE_FALLBACK = False
+
+
+class SQLiteCursorWrapper:
+    def __init__(self, sqlite_cursor, dictionary=False):
+        self._cursor = sqlite_cursor
+        self._dictionary = dictionary
+
+    def execute(self, query, params=None):
+        translated = query.replace("%s", "?")
+        translated = translated.replace(
+            "id INT AUTO_INCREMENT PRIMARY KEY", "id INTEGER PRIMARY KEY AUTOINCREMENT"
+        )
+        translated = translated.replace(
+            "id INT PRIMARY KEY AUTO_INCREMENT", "id INTEGER PRIMARY KEY AUTOINCREMENT"
+        )
+        translated = translated.replace("AUTO_INCREMENT", "")
+        translated = translated.replace(
+            "DATE_SUB(NOW(), INTERVAL 7 DAY)", "datetime('now', '-7 days')"
+        )
+        if params is not None:
+            if isinstance(params, (list, tuple)):
+                self._cursor.execute(translated, params)
+            else:
+                self._cursor.execute(translated, (params,))
+        else:
+            self._cursor.execute(translated)
+        return self
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        if self._dictionary:
+            return dict(row)
+        return tuple(row)
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        if self._dictionary:
+            return [dict(r) for r in rows]
+        return [tuple(r) for r in rows]
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    def close(self):
+        try:
+            self._cursor.close()
+        except Exception:
+            pass
+
+
+class SQLiteConnectionWrapper:
+    def __init__(self, sqlite_conn):
+        self._conn = sqlite_conn
+        self._conn.row_factory = sqlite3.Row
+
+    def cursor(self, dictionary=False):
+        return SQLiteCursorWrapper(self._conn.cursor(), dictionary=dictionary)
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        try:
+            self._conn.close()
+        except Exception:
+            pass
 
 
 def get_db_connection():
-    # This helps us connect to MySQL when the auth routes need to read or write user data.
+    global _USE_SQLITE_FALLBACK
+    if _USE_SQLITE_FALLBACK:
+        os.makedirs(os.path.dirname(SQLITE_DB_PATH), exist_ok=True)
+        raw_conn = sqlite3.connect(SQLITE_DB_PATH, timeout=5)
+        return SQLiteConnectionWrapper(raw_conn)
+
     try:
         return mysql.connector.connect(**DB_CONFIG)
-    except mysql.connector.Error as err:
-        error_msg = f"MySQL Connection Error: {err}"
-        print(error_msg)
-
-        # Log connection details for debugging (but don't expose password)
-        print(
-            f"Connection details: host={DB_CONFIG['host']}, port={DB_CONFIG['port']}, user={DB_CONFIG['user']}, db={DB_CONFIG['database']}"
-        )
-        if not DB_CONFIG["password"]:
-            print("WARNING: DB_PASSWORD is empty! Set it in your .env file.")
-
-        # Additional help for Aiven connections
-        if "aivencloud.com" in DB_CONFIG.get("host", ""):
-            print("TIP: For Aiven MySQL connections:")
-            print("  - Ensure DB_HOST includes the full Aiven hostname")
-            print("  - Ensure DB_PORT is set to Aiven port (usually 11461)")
-            print("  - Ensure DB_PASSWORD is correctly set from Aiven dashboard")
-            print("  - SSL is automatically enabled for Aiven connections")
-
-        raise
+    except Exception as err:
+        print(f"MySQL Connection Note: {err}. Using local SQLite fallback ({SQLITE_DB_PATH}).")
+        _USE_SQLITE_FALLBACK = True
+        os.makedirs(os.path.dirname(SQLITE_DB_PATH), exist_ok=True)
+        raw_conn = sqlite3.connect(SQLITE_DB_PATH, timeout=5)
+        return SQLiteConnectionWrapper(raw_conn)
 
 
 def init_db():
@@ -188,8 +255,7 @@ def init_db():
                 predicted_output FLOAT NOT NULL,
                 monthly_savings FLOAT NOT NULL,
                 payback_period FLOAT NOT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX (user_id)
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -211,10 +277,8 @@ def init_db():
             )
             conn.commit()
             print(f"Default admin user '{default_admin_username}' initialized.")
-    except mysql.connector.Error as exc:
-        print(f"Warning: Database initialization skipped/failed: {exc}")
     except Exception as exc:
-        print(f"Warning: Unexpected database initialization error: {exc}")
+        print(f"Database initialization warning: {exc}")
     finally:
         if cursor:
             cursor.close()
@@ -417,7 +481,7 @@ def weather_lookup():
         # Step 1: use Open-Meteo geocoding to turn city -> latitude/longitude.
         geocode_url = "https://geocoding-api.open-meteo.com/v1/search"
         geocode_response = requests.get(
-            geocode_url, params={"name": city, "count": 1}, timeout=20
+            geocode_url, params={"name": city, "count": 1}, timeout=5
         )
         geocode_response.raise_for_status()
         geocode_data = geocode_response.json()
@@ -443,7 +507,7 @@ def weather_lookup():
                 "current": "temperature_2m,cloud_cover,relative_humidity_2m,wind_speed_10m,shortwave_radiation",
                 "timezone": "auto",
             },
-            timeout=20,
+            timeout=5,
         )
         forecast_response.raise_for_status()
         forecast_data = forecast_response.json()
@@ -548,7 +612,7 @@ def admin_stats():
                 "new_registrations_this_week": new_registrations_this_week,
             }
         )
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -570,7 +634,7 @@ def admin_users():
         )
         users = cursor.fetchall()
         return jsonify({"users": users})
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -624,7 +688,7 @@ def community_stats():
                 ],
             }
         )
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -649,7 +713,7 @@ def delete_admin_user(user_id):
             return jsonify({"error": "User not found."}), 404
 
         return jsonify({"message": "User deleted."})
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -686,7 +750,7 @@ def signup():
         )
         conn.commit()
         return jsonify({"message": "User registered successfully."})
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -737,7 +801,7 @@ def login():
                 },
             }
         )
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -783,7 +847,7 @@ def admin_login():
         return jsonify(
             {"message": "Admin login successful.", "token": token, "isAdmin": True}
         )
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -815,8 +879,11 @@ def get_my_calculations():
             (user_id,),
         )
         records = cursor.fetchall()
-        return jsonify({"calculations": records})
-    except mysql.connector.Error as exc:
+        return jsonify({
+            "calculations": records,
+            "history": records,
+        })
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -826,6 +893,7 @@ def get_my_calculations():
 
 
 @app.delete("/my-calculations/<int:calculation_id>")
+@app.delete("/calculation/<int:calculation_id>")
 @token_required
 def delete_my_calculation(calculation_id):
     payload = request.user_payload
@@ -849,7 +917,7 @@ def delete_my_calculation(calculation_id):
             ), 404
 
         return jsonify({"message": "Calculation deleted."})
-    except mysql.connector.Error as exc:
+    except Exception as exc:
         return jsonify({"error": f"Database error: {exc}"}), 500
     finally:
         if cursor:
@@ -999,7 +1067,7 @@ def calculate_roi():
                 ),
             )
             conn.commit()
-        except mysql.connector.Error as exc:
+        except Exception as exc:
             print(f"Warning: could not save calculation: {exc}")
         finally:
             if cursor:

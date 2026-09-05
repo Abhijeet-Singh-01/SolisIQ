@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { downloadPdfReport } from './reportDownload';
+import {
+  History,
+  Download,
+  Trash2,
+  Calendar,
+  MapPin,
+  IndianRupee,
+  Clock,
+  FileText,
+  AlertCircle,
+} from 'lucide-react';
 
 function CalculationHistory({ history, loading, error, onDelete }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [downloadError, setDownloadError] = useState('');
 
   const handleDownloadReport = async (item) => {
-    const predictedOutput = Number(item.predicted_output);
+    const predictedOutput = Number(item.predicted_output || 0);
     const co2SavedKg = predictedOutput * 0.82;
 
     setDownloadingId(item.id);
@@ -14,71 +25,120 @@ function CalculationHistory({ history, loading, error, onDelete }) {
 
     try {
       await downloadPdfReport({
-        city: item.city,
-        monthlyBill: Number(item.monthly_bill),
+        city: item.city || 'Your Location',
+        monthlyBill: Number(item.monthly_bill || 0),
         predictedOutput,
-        monthlySavings: Number(item.monthly_savings),
-        annualSavings: Number(item.monthly_savings) * 12,
-        paybackPeriod: Number(item.payback_period),
+        monthlySavings: Number(item.monthly_savings || 0),
+        annualSavings: Number(item.monthly_savings || 0) * 12,
+        paybackPeriod: Number(item.payback_period || 0),
         co2SavedKg,
         treeEquivalent: co2SavedKg / 21,
       });
     } catch (downloadException) {
       const message = downloadException?.message || 'Could not download this report. Please try again.';
       setDownloadError(message);
-      console.error('History report download failed', downloadException);
     } finally {
       setDownloadingId(null);
     }
   };
 
   return (
-    <section className="history-panel">
-      <div className="history-heading">
-        <h2>Calculation History</h2>
-        <p>Saved calculations for your account.</p>
+    <div className="solis-card history-panel-card">
+      <div className="history-head">
+        <div className="history-head-title">
+          <History size={20} className="text-solar" />
+          <div>
+            <h3>Your Saved Calculations</h3>
+            <p>Historical rooftop assessments generated under your account.</p>
+          </div>
+        </div>
+        <span className="history-count-badge">
+          {history.length} {history.length === 1 ? 'Record' : 'Records'}
+        </span>
       </div>
 
-      {loading && <p className="loading-state">Loading history...</p>}
-      {error && <p className="error-message">{error}</p>}
-      {downloadError && <p className="error-message">{downloadError}</p>}
+      {loading && (
+        <div className="history-loading-box">
+          <span className="solis-spinner" />
+          <p>Retrieving calculation records...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="solis-form-error">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {downloadError && (
+        <div className="solis-form-error">
+          <AlertCircle size={16} />
+          <span>{downloadError}</span>
+        </div>
+      )}
 
       {!loading && !error && (
-        <div className="history-table-wrapper">
+        <div className="history-table-responsive">
           {history.length === 0 ? (
-            <p>No saved calculations yet. Run the calculator to store one.</p>
+            <div className="history-empty-view">
+              <p>No saved calculations found. Complete a rooftop assessment above to save it to your profile.</p>
+            </div>
           ) : (
-            <table className="history-table">
+            <table className="solis-glass-table">
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>City</th>
-                  <th>Bill (₹)</th>
-                  <th>Monthly Savings</th>
-                  <th>Payback (yrs)</th>
-                  <th />
+                  <th>Location</th>
+                  <th>Monthly Bill</th>
+                  <th>Estimated Savings</th>
+                  <th>Payback</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((item) => (
                   <tr key={item.id}>
-                    <td>{new Date(item.created_at).toLocaleDateString()}</td>
-                    <td>{item.city}</td>
-                    <td>₹{Number(item.monthly_bill).toFixed(0)}</td>
-                    <td>₹{Number(item.monthly_savings).toFixed(0)}</td>
-                    <td>{Number(item.payback_period).toFixed(1)}</td>
                     <td>
-                      <div className="history-actions">
+                      <div className="history-date-cell">
+                        <Calendar size={14} className="cell-icon" />
+                        <span>{item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="history-loc-cell">
+                        <MapPin size={14} className="cell-icon" />
+                        <strong>{item.city || 'Unknown'}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="cell-bill">₹{Number(item.monthly_bill || 0).toLocaleString('en-IN')}</span>
+                    </td>
+                    <td>
+                      <span className="cell-savings">₹{Number(item.monthly_savings || 0).toLocaleString('en-IN')}/mo</span>
+                    </td>
+                    <td>
+                      <span className="cell-payback">{Number(item.payback_period || 0).toFixed(1)} Yrs</span>
+                    </td>
+                    <td className="text-right">
+                      <div className="history-action-btns">
                         <button
                           type="button"
-                          className="history-report-btn"
+                          className="action-btn report-btn"
                           onClick={() => handleDownloadReport(item)}
                           disabled={downloadingId === item.id}
+                          title="Download PDF Report"
                         >
-                          {downloadingId === item.id ? 'Preparing...' : 'Download Report'}
+                          <Download size={14} />
+                          <span>{downloadingId === item.id ? 'Exporting...' : 'PDF'}</span>
                         </button>
-                        <button type="button" className="delete-btn" onClick={() => onDelete(item.id)}>
-                          Delete
+                        <button
+                          type="button"
+                          className="action-btn delete-btn"
+                          onClick={() => onDelete(item.id)}
+                          title="Delete record"
+                        >
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -89,7 +149,7 @@ function CalculationHistory({ history, loading, error, onDelete }) {
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

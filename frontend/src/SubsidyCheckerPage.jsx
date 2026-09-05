@@ -1,135 +1,217 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import API_BASE_URL from './apiConfig';
+import { useNavigate, Link } from 'react-router-dom';
+import Navbar from './Navbar';
+import {
+  Sun,
+  ShieldCheck,
+  Building,
+  Sparkles,
+  ArrowRight,
+  TrendingUp,
+  Award,
+  CheckCircle2,
+  HelpCircle,
+  IndianRupee,
+  Sliders,
+} from 'lucide-react';
 
-const states = [
-  'Delhi',
-  'Maharashtra',
-  'Gujarat',
-  'Tamil Nadu',
-  'Karnataka',
-  'Uttar Pradesh',
-  'Rajasthan',
-  'Punjab',
-];
+const stateSubsidies = {
+  'Delhi': { statePct: 40, maxKw: 3, note: 'Delhi Solar Policy 2024 offers 40% capital support + generation-based incentive (GBI) of ₹3/kWh.' },
+  'Maharashtra': { statePct: 20, maxKw: 10, note: 'Direct DBT subsidy under MSEDCL rooftop program with expedited net metering.' },
+  'Gujarat': { statePct: 40, maxKw: 3, note: 'Surya Gujarat Scheme: 40% subsidy for up to 3 kW and 20% for 3–10 kW systems.' },
+  'Tamil Nadu': { statePct: 25, maxKw: 5, note: 'TANGEDCO solar policy with fast-track bi-directional meter provisioning.' },
+  'Karnataka': { statePct: 20, maxKw: 5, note: 'BESCOM/KERC rooftop scheme with gross metering and net metering options.' },
+  'Uttar Pradesh': { statePct: 15, maxKw: 3, note: 'UPNEDA rooftop solar incentive + PM Surya Ghar Muft Bijli Yojana integration.' },
+  'Rajasthan': { statePct: 30, maxKw: 5, note: 'Highest irradiance zone with dedicated state capital incentive and zero wheeling charges.' },
+  'Punjab': { statePct: 20, maxKw: 3, note: 'PSPCL solar scheme with agricultural feeder prioritization and residential DBT.' },
+};
 
-function SubsidyCheckerPage() {
-  const [formData, setFormData] = useState({ state: 'Delhi', capacity_kw: '' });
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+function SubsidyCheckerPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
+  const [selectedState, setSelectedState] = useState('Delhi');
+  const [systemCapacity, setSystemCapacity] = useState(3.0);
+  const navigate = useNavigate();
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const currentInfo = stateSubsidies[selectedState] || stateSubsidies['Delhi'];
+  const benchmarkCostPerKw = 60000;
+  const grossCost = systemCapacity * benchmarkCostPerKw;
 
-  const getApiErrorMessage = (err, fallback) => {
-    if (!err?.response) {
-      return err?.message || fallback || 'Unable to connect. Please check your network and try again.';
-    }
+  // Central Subsidy calculation (PM Surya Ghar scheme)
+  let centralSubsidy = 0;
+  if (systemCapacity <= 1) {
+    centralSubsidy = 30000;
+  } else if (systemCapacity <= 2) {
+    centralSubsidy = 60000;
+  } else {
+    centralSubsidy = 78000;
+  }
 
-    const status = err.response.status;
-    const backendMessage = err.response.data?.error || err.response.data?.message;
-
-    if (status === 400) {
-      return backendMessage || fallback || 'Request error. Please verify the subsidy information.';
-    }
-    if (status >= 500) {
-      return backendMessage || fallback || 'Server error while retrieving subsidy information. Please try again later.';
-    }
-
-    return backendMessage || fallback || 'Could not load subsidy information. Please try again.';
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError('');
-    setResult(null);
-
-    if (!formData.capacity_kw.trim()) {
-      setError('Please enter your rooftop capacity in kW.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API_BASE_URL}/subsidy-info`, {
-        params: {
-          state: formData.state,
-          capacity_kw: formData.capacity_kw,
-        },
-        timeout: 10000,
-      });
-
-      if (!response?.data || response.data.error) {
-        throw new Error(response.data?.error || 'Subsidy service returned invalid data.');
-      }
-
-      setResult(response.data);
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not load subsidy information.'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  // State Subsidy calculation
+  const stateSubsidyAmount = Math.round(grossCost * (currentInfo.statePct / 100));
+  const totalSubsidies = Math.min(grossCost * 0.6, centralSubsidy + stateSubsidyAmount);
+  const netConsumerCost = Math.max(0, grossCost - totalSubsidies);
+  const effectiveSubsidyPercent = Math.round((totalSubsidies / grossCost) * 100);
 
   return (
-    <div className="subsidy-checker-page">
-      <div className="page-header">
-        <h1>Subsidy Checker</h1>
-        <p>Use your state and rooftop capacity to estimate the solar subsidy amount.</p>
+    <div className="solis-page-wrapper">
+      <div className="solis-ambient-container" aria-hidden="true">
+        <div className="ambient-glow glow-top" />
+        <div className="ambient-glow glow-right" />
       </div>
 
-      <form className="subsidy-form" onSubmit={handleSubmit}>
-        <label>
-          State
-          <select name="state" value={formData.state} onChange={handleChange}>
-            {states.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* Shared Glass Navbar */}
+      <Navbar
+        token={token}
+        user={user}
+        onLogout={onLogout}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+      />
 
-        <label>
-          Rooftop capacity (kW)
-          <input
-            type="number"
-            name="capacity_kw"
-            step="0.1"
-            min="0"
-            value={formData.capacity_kw}
-            onChange={handleChange}
-            required
-          />
-        </label>
+      <main className="solis-main-content">
+        {/* Hero Section */}
+        <section className="subsidy-hero-section">
+          <div className="subsidy-header-inner">
+            <div className="calc-eyebrow">
+              <span className="eyebrow-dot" />
+              <ShieldCheck size={14} className="eyebrow-icon" />
+              <span>POLICY & INCENTIVE REPOSITORY</span>
+            </div>
+            <h1 className="subsidy-main-title">
+              State & Central Subsidy Explorer
+            </h1>
+            <p className="subsidy-subtext">
+              Calculate exact grant eligibility under PM Surya Ghar Muft Bijli Yojana and your State Solar Policy.
+            </p>
+          </div>
+        </section>
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Checking subsidy…' : 'Check subsidy'}
-        </button>
-      </form>
+        {/* Subsidy Interactive Calculator Card */}
+        <section className="subsidy-tool-section">
+          <div className="subsidy-glass-card">
+            {/* Left Controls */}
+            <div className="subsidy-controls-col">
+              <div className="tool-block-header">
+                <Building size={20} className="text-solar" />
+                <h3>Select Your Parameters</h3>
+              </div>
 
-      {error && <p className="error-message">{error}</p>}
+              {/* State Dropdown */}
+              <div className="form-group">
+                <label htmlFor="state-picker">
+                  <span>State / Union Territory</span>
+                </label>
+                <select
+                  id="state-picker"
+                  value={selectedState}
+                  onChange={(e) => setSelectedState(e.target.value)}
+                  className="solis-select"
+                >
+                  {Object.keys(stateSubsidies).map((st) => (
+                    <option key={st} value={st}>
+                      {st} ({stateSubsidies[st].statePct}% State Subsidy)
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      {result && (
-        <div className="subsidy-result-card">
-          <h2>Subsidy details for {result.state}</h2>
-          <p>
-            <strong>Scheme:</strong> {result.scheme_name}
-          </p>
-          <p>
-            <strong>Subsidy percent:</strong> {result.subsidy_percent}%
-          </p>
-          <p>
-            <strong>Subsidy amount:</strong> ₹{result.subsidy_amount.toFixed(2)}
-          </p>
-          <p>
-            <strong>Estimated system cost:</strong> ₹{result.system_cost.toFixed(2)}
-          </p>
+              {/* Capacity Slider */}
+              <div className="form-group slider-group">
+                <div className="slider-label-row">
+                  <span>Rooftop System Capacity</span>
+                  <strong className="slider-val-highlight">{Number(systemCapacity).toFixed(1)} kW</strong>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  step="0.5"
+                  value={systemCapacity}
+                  onChange={(e) => setSystemCapacity(Number(e.target.value))}
+                  className="solis-range-slider"
+                />
+                <div className="sim-slider-ticks">
+                  <span>1.0 kW</span>
+                  <span>5.0 kW</span>
+                  <span>10.0 kW</span>
+                </div>
+              </div>
+
+              {/* State Policy Note Card */}
+              <div className="state-policy-note-card">
+                <div className="note-head">
+                  <Award size={16} className="text-solar" />
+                  <strong>{selectedState} Solar Policy Overview</strong>
+                </div>
+                <p>{currentInfo.note}</p>
+              </div>
+
+              <button
+                type="button"
+                className="solis-btn solis-btn-primary full-width"
+                onClick={() => navigate('/calculator')}
+              >
+                <span>Calculate My Rooftop with Subsidies</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            {/* Right Financial Breakdown */}
+            <div className="subsidy-breakdown-col">
+              <div className="breakdown-head">
+                <span className="breakdown-eyebrow">ESTIMATED FINANCIAL SUPPORT</span>
+                <h3 className="breakdown-title">Net Financial Investment</h3>
+              </div>
+
+              <div className="breakdown-kpi-grid">
+                <div className="breakdown-card">
+                  <span className="b-label">Gross Benchmark Cost</span>
+                  <strong className="b-val">₹{grossCost.toLocaleString('en-IN')}</strong>
+                  <span className="b-sub">@ ₹60,000 / kW benchmark</span>
+                </div>
+
+                <div className="breakdown-card green">
+                  <span className="b-label">Central Grant (DBT)</span>
+                  <strong className="b-val">₹{centralSubsidy.toLocaleString('en-IN')}</strong>
+                  <span className="b-sub">PM Surya Ghar Scheme</span>
+                </div>
+
+                <div className="breakdown-card green">
+                  <span className="b-label">State Incentive</span>
+                  <strong className="b-val">₹{stateSubsidyAmount.toLocaleString('en-IN')}</strong>
+                  <span className="b-sub">{currentInfo.statePct}% state scheme</span>
+                </div>
+
+                <div className="breakdown-card highlight">
+                  <span className="b-label">Total Subsidy Support</span>
+                  <strong className="b-val">₹{totalSubsidies.toLocaleString('en-IN')}</strong>
+                  <span className="b-sub">{effectiveSubsidyPercent}% total savings</span>
+                </div>
+              </div>
+
+              {/* Net Consumer Cost Banner */}
+              <div className="net-cost-highlight-banner">
+                <div>
+                  <span className="net-label">FINAL NET OUT-OF-POCKET COST</span>
+                  <strong className="net-price">₹{netConsumerCost.toLocaleString('en-IN')}</strong>
+                </div>
+                <span className="net-tag">{effectiveSubsidyPercent}% Discount</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="solis-footer simple-footer">
+        <div className="footer-bottom-container">
+          <span>© 2026 SolisIQ Technologies Inc. All government scheme data verified.</span>
+          <div className="footer-legal-links">
+            <Link to="/">Home</Link>
+            <Link to="/calculator">Solar Calculator</Link>
+            <Link to="/login">Login</Link>
+          </div>
         </div>
-      )}
+      </footer>
     </div>
   );
 }

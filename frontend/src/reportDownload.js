@@ -1,7 +1,7 @@
 import axios from 'axios';
 import API_BASE_URL from './apiConfig';
 
-const getDownloadErrorMessage = (error) => {
+const getDownloadErrorMessage = async (error) => {
   if (!error?.response) {
     return error?.message || 'Unable to connect. Please check your network and try again.';
   }
@@ -12,6 +12,16 @@ const getDownloadErrorMessage = (error) => {
 
   if (error.response.status >= 500) {
     return 'Server error while generating the report. Please try again later.';
+  }
+
+  if (error.response.data instanceof Blob) {
+    try {
+      const text = await error.response.data.text();
+      const parsed = JSON.parse(text);
+      return parsed.error || parsed.message || 'Could not generate the report.';
+    } catch {
+      return 'Could not generate the report.';
+    }
   }
 
   return error.response.data?.message || error.response.data?.error || 'Could not generate the report. Please try again.';
@@ -29,13 +39,14 @@ export async function downloadPdfReport(reportData) {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'ai_solar_advisor_report.pdf';
+    const sanitizedCity = (reportData.city || 'solar').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    link.download = `solisiq_report_${sanitizedCity}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    const message = getDownloadErrorMessage(error);
+    const message = await getDownloadErrorMessage(error);
     throw new Error(message);
   }
 }

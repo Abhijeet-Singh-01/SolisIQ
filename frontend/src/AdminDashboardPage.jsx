@@ -1,214 +1,234 @@
-
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import Navbar from './Navbar';
 import API_BASE_URL from './apiConfig';
+import {
+  ShieldCheck,
+  Users,
+  Search,
+  Trash2,
+  AlertCircle,
+  Database,
+  Calendar,
+  Mail,
+  User,
+} from 'lucide-react';
 
 function AdminDashboardPage({ token, user, onLogout, darkMode, toggleDarkMode }) {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
-  const authConfig = useMemo(() => {
-    const config = { headers: {} };
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  }, [token]);
-
-  const getApiErrorMessage = (err) => {
-    if (!err?.response) {
-      return err?.message || 'Unable to connect. Please check your network and try again.';
-    }
-
-    const status = err.response.status;
-    const backendMessage = err.response.data?.error || err.response.data?.message;
-
-    if (status === 400) {
-      return backendMessage || 'Could not load the requested admin data. Please try again.';
-    }
-    if (status === 401 || status === 403) {
-      return backendMessage || 'Your session has expired. Please sign in again.';
-    }
-    if (status >= 500) {
-      return backendMessage || 'Server error while loading admin data. Try again in a few moments.';
-    }
-
-    return backendMessage || 'Something went wrong. Please refresh the page.';
-  };
-
-  const handleUnauthorized = () => {
-    onLogout();
-    navigate('/admin/login');
-  };
-
-  const loadDashboard = useCallback(async () => {
+  const fetchUsers = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setError('');
 
     try {
-      const [statsResponse, usersResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/admin/stats`, authConfig),
-        axios.get(`${API_BASE_URL}/admin/users`, authConfig),
-      ]);
-
-      setStats(statsResponse.data);
-      setUsers(usersResponse.data.users || []);
+      const response = await axios.get(`${API_BASE_URL}/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      });
+      setUsers(response.data.users || []);
     } catch (err) {
-      const message = getApiErrorMessage(err);
-      setError(message);
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        handleUnauthorized();
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        if (onLogout) onLogout();
+        navigate('/admin/login');
+        return;
       }
+      setError(err.response?.data?.message || 'Could not fetch user directory.');
     } finally {
       setLoading(false);
     }
-  }, [authConfig]);
+  }, [token, onLogout, navigate]);
 
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    fetchUsers();
+  }, [fetchUsers]);
 
-  const filteredUsers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return users;
-
-    return users.filter((account) => (
-      account.username.toLowerCase().includes(query)
-      || account.email.toLowerCase().includes(query)
-    ));
-  }, [searchTerm, users]);
-
-  const handleLogout = () => {
-    onLogout();
-    navigate('/admin/login');
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Delete this user? This action cannot be undone.')) {
-      return;
-    }
-
-    setDeletingUserId(userId);
-    setError('');
-
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Are you sure you wish to delete this user?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/admin/users/${userId}`, authConfig);
-      setUsers((currentUsers) => currentUsers.filter((account) => account.id !== userId));
-      setStats((currentStats) => (
-        currentStats
-          ? { ...currentStats, total_users: Math.max(0, currentStats.total_users - 1) }
-          : currentStats
-      ));
+      await axios.delete(`${API_BASE_URL}/admin/user/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      });
+      setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch (err) {
-      const message = getApiErrorMessage(err);
-      setError(message);
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        handleUnauthorized();
-      }
-    } finally {
-      setDeletingUserId(null);
+      alert(err.response?.data?.message || 'Could not delete user.');
     }
   };
+
+  const filteredUsers = users.filter((u) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="app-container admin-app-container">
-      <div className="topbar">
-        <div>
-          <div className="topbar-label">Administration</div>
-          <h1>Admin Dashboard</h1>
-          <p>Administrative overview for AI Solar Advisor.</p>
-        </div>
-        <div className="topbar-controls">
-          <button type="button" className="theme-toggle-btn" onClick={toggleDarkMode}>
-            {darkMode ? 'Light mode' : 'Dark mode'}
-          </button>
-          <div className="user-pill">
-            <span>{user?.username || 'Admin'}</span>
-            <button type="button" className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </div>
+    <div className="solis-page-wrapper">
+      <div className="solis-ambient-container" aria-hidden="true">
+        <div className="ambient-glow glow-top" />
+        <div className="ambient-glow glow-right" />
       </div>
 
-      {error && <p className="error-message admin-dashboard-error">{error}</p>}
+      {/* Shared Glass Navbar */}
+      <Navbar
+        token={token}
+        user={user}
+        onLogout={onLogout}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+      />
 
-      <section className="admin-dashboard" aria-label="Admin dashboard overview">
-        <div className="card-grid admin-stats-grid">
-          <article className="card positive">
-            <h3>Total users</h3>
-            <p>{loading ? '...' : stats?.total_users ?? 0}</p>
-          </article>
-          <article className="card energy">
-            <h3>New this week</h3>
-            <p>{loading ? '...' : stats?.new_registrations_this_week ?? 0}</p>
-          </article>
-        </div>
-
-        <section className="admin-users-card">
-          <div className="admin-users-header">
-            <div>
-              <h2>Registered users</h2>
-              <p>Search and manage regular user accounts.</p>
+      <main className="solis-main-content">
+        <section className="admin-dash-header">
+          <div className="admin-dash-header-inner">
+            <div className="calc-eyebrow">
+              <span className="eyebrow-dot" />
+              <ShieldCheck size={14} className="eyebrow-icon" />
+              <span>ADMINISTRATIVE CONTROL CONSOLE</span>
             </div>
-            <input
-              type="search"
-              className="admin-search-input"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search username or email"
-              aria-label="Search users by username or email"
-              disabled={loading}
-            />
+            <h1 className="admin-dash-title">Platform Operations & User Registry</h1>
+            <p className="admin-dash-sub">
+              Manage registered accounts, view system telemetry, and inspect database state.
+            </p>
+          </div>
+        </section>
+
+        {/* Top KPIs */}
+        <section className="admin-kpis-grid">
+          <div className="solis-card admin-kpi-card">
+            <Users size={22} className="text-solar" />
+            <strong className="kpi-num">{users.length}</strong>
+            <span className="kpi-desc">Total Registered Users</span>
           </div>
 
-          {loading ? (
-            <p className="admin-table-message loading-state">Loading users...</p>
-          ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-users-table">
-                <thead>
-                  <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Joined date</th>
-                    <th><span className="sr-only">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.length ? filteredUsers.map((account) => (
-                    <tr key={account.id}>
-                      <td>{account.username}</td>
-                      <td>{account.email}</td>
-                      <td>{account.created_at ? new Date(account.created_at).toLocaleDateString() : '—'}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="admin-delete-btn"
-                          onClick={() => handleDeleteUser(account.id)}
-                          disabled={deletingUserId === account.id}
-                        >
-                          {deletingUserId === account.id ? 'Deleting...' : 'Delete'}
-                        </button>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan="4" className="admin-table-message">No users match your search.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="solis-card admin-kpi-card">
+            <Database size={22} className="text-emerald" />
+            <strong className="kpi-num">Active</strong>
+            <span className="kpi-desc">Aiven MySQL Cluster</span>
+          </div>
+
+          <div className="solis-card admin-kpi-card">
+            <ShieldCheck size={22} className="text-blue" />
+            <strong className="kpi-num">Admin Active</strong>
+            <span className="kpi-desc">Signed in as {user?.username}</span>
+          </div>
         </section>
-      </section>
+
+        {/* User Management Table */}
+        <section className="admin-table-section">
+          <div className="solis-card admin-table-card">
+            <div className="admin-table-header">
+              <div className="table-title-block">
+                <h3>User Management</h3>
+                <p>Directory of registered users on SolisIQ.</p>
+              </div>
+
+              <div className="table-search-input">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Filter by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="solis-search-box"
+                />
+              </div>
+            </div>
+
+            {loading && (
+              <div className="history-loading-box">
+                <span className="solis-spinner" />
+                <p>Loading user directory...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="solis-form-error">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <div className="history-table-responsive">
+                <table className="solis-glass-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>User</th>
+                      <th>Email</th>
+                      <th>Registration Date</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td>#{u.id}</td>
+                        <td>
+                          <div className="history-loc-cell">
+                            <User size={14} className="cell-icon" />
+                            <strong>{u.username}</strong>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="history-date-cell">
+                            <Mail size={14} className="cell-icon" />
+                            <span>{u.email}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="history-date-cell">
+                            <Calendar size={14} className="cell-icon" />
+                            <span>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</span>
+                          </div>
+                        </td>
+                        <td className="text-right">
+                          <button
+                            type="button"
+                            className="action-btn delete-btn"
+                            onClick={() => handleDeleteUser(u.id)}
+                            title="Delete User"
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center" style={{ padding: '32px' }}>
+                          No users matched your search query.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="solis-footer simple-footer">
+        <div className="footer-bottom-container">
+          <span>© 2026 SolisIQ Internal Admin Console. Restricted access.</span>
+          <div className="footer-legal-links">
+            <Link to="/">Home</Link>
+            <Link to="/calculator">Solar Calculator</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

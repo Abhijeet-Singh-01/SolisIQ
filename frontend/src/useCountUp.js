@@ -1,37 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-function useCountUp(target, { duration = 900, decimals = 0 } = {}) {
+function useCountUp(target, duration = 1200, decimals = 0) {
   const [value, setValue] = useState(0);
   const animationRef = useRef(null);
-  const startRef = useRef(null);
-  const previousTargetRef = useRef(0);
 
   useEffect(() => {
-    const endValue = Number(target) || 0;
-    const startValue = Number(previousTargetRef.current) || 0;
+    const end = Number(target) || 0;
+    const start = 0;
+    const startTime = performance.now();
 
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
+    const update = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = start + (end - start) * ease;
 
-    startRef.current = null;
-
-    const step = (timestamp) => {
-      if (!startRef.current) {
-        startRef.current = timestamp;
-      }
-
-      const progress = Math.min((timestamp - startRef.current) / duration, 1);
-      const nextValue = startValue + (endValue - startValue) * progress;
-      setValue(nextValue);
+      setValue(current);
 
       if (progress < 1) {
-        animationRef.current = requestAnimationFrame(step);
+        animationRef.current = requestAnimationFrame(update);
+      } else {
+        setValue(end);
       }
     };
 
-    animationRef.current = requestAnimationFrame(step);
-    previousTargetRef.current = endValue;
+    animationRef.current = requestAnimationFrame(update);
 
     return () => {
       if (animationRef.current) {
@@ -40,7 +34,8 @@ function useCountUp(target, { duration = 900, decimals = 0 } = {}) {
     };
   }, [target, duration]);
 
-  return Number(value.toFixed(decimals));
+  const numericValue = Number.isFinite(value) ? value : 0;
+  return Number(numericValue.toFixed(decimals));
 }
 
 export default useCountUp;
