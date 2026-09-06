@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    SOLISIQ — MASTER DESIGN SYSTEM STYLESHEET
    COLOR HUNT PALETTE:
      #FFF5F5 (Soft Blush / Paper)
@@ -2375,6 +2375,71 @@ button, input, select, textarea {
 .pill-sub {
   font-size: 0.72rem;
   color: var(--ink-muted);
+}
+
+/* Rooftop Area Limitation Banner */
+.roof-constraint-banner {
+  background: rgba(226, 180, 189, 0.12);
+  border: 1px solid rgba(226, 180, 189, 0.4);
+  border-left: 4px solid var(--color-rose);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.constraint-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+  margin-bottom: 6px;
+}
+
+.constraint-explanation {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+  margin-bottom: 12px;
+}
+
+.constraint-metrics-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.constraint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+}
+
+.dark .constraint-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.constraint-pill.highlight {
+  background: rgba(226, 180, 189, 0.2);
+  border-color: rgba(226, 180, 189, 0.5);
+  color: var(--ink-primary);
+  font-weight: 600;
+}
+
+.constraint-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
 }
 
 .rooftop-canvas-container {

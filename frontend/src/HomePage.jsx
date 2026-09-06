@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import SolarIntelligenceFlow from './SolarIntelligenceFlow';
@@ -14,6 +14,7 @@ import {
   Cpu,
   Layers,
   CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -40,15 +41,47 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
   const [simulatedArea, setSimulatedArea] = useState(650);
   const [simulatedState, setSimulatedState] = useState('Delhi');
 
-  // Compute live simulated values
-  const simCapacityKw = useMemo(() => {
-    const raw = simulatedBill / 7 / 30 / 4;
-    return Math.max(1.2, Math.min(25, Number(raw.toFixed(1))));
+  // Centralized Solar Panel Physical Specifications (Matches authoritative backend)
+  const PANEL_WATTAGE_W = 400;
+  const PANEL_CAPACITY_KW = 0.4;
+  const PANEL_AREA_SQFT = 21.02;
+  const USABLE_AREA_FACTOR = 0.70;
+
+  // Usable area & physical limits
+  const usableSimArea = useMemo(() => {
+    return Math.round(simulatedArea * USABLE_AREA_FACTOR);
+  }, [simulatedArea]);
+
+  const maxPhysicalPanels = useMemo(() => {
+    return Math.max(1, Math.floor(usableSimArea / PANEL_AREA_SQFT));
+  }, [usableSimArea]);
+
+  const requiredCapacityKw = useMemo(() => {
+    return (simulatedBill / 7 / 30) / 4.0;
   }, [simulatedBill]);
 
+  const requiredPanels = useMemo(() => {
+    return Math.max(1, Math.ceil(requiredCapacityKw / PANEL_CAPACITY_KW));
+  }, [requiredCapacityKw]);
+
+  const isRoofConstrained = useMemo(() => {
+    return requiredPanels > maxPhysicalPanels;
+  }, [requiredPanels, maxPhysicalPanels]);
+
+  // Final recommended panel count and capacity strictly capped by roof
+  const simPanelCount = useMemo(() => {
+    return Math.min(requiredPanels, maxPhysicalPanels);
+  }, [requiredPanels, maxPhysicalPanels]);
+
+  const simCapacityKw = useMemo(() => {
+    return Number((simPanelCount * PANEL_CAPACITY_KW).toFixed(1));
+  }, [simPanelCount]);
+
   const simAnnualSavings = useMemo(() => {
-    return Math.round(simulatedBill * 0.95 * 12);
-  }, [simulatedBill]);
+    const monthlyGen = simCapacityKw * 120.0;
+    const monthlySaved = Math.min(simulatedBill, monthlyGen * 7);
+    return Math.round(monthlySaved * 12);
+  }, [simCapacityKw, simulatedBill]);
 
   const simPaybackYears = useMemo(() => {
     const cost = simCapacityKw * 60000;
@@ -60,19 +93,15 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
     return Math.round(simCapacityKw * 120 * 12 * 0.82);
   }, [simCapacityKw]);
 
-  const simPanelCount = useMemo(() => {
-    return Math.max(4, Math.ceil(simCapacityKw / 0.4));
-  }, [simCapacityKw]);
-
   // Live values payload for SolarIntelligenceFlow synchronization
   const simLiveValues = useMemo(() => ({
-    dailyGeneration: (simCapacityKw * 4.2).toFixed(1),
-    greenOffset: '100',
+    dailyGeneration: (simCapacityKw * 4.0).toFixed(1),
+    greenOffset: (Math.min(100, Math.round((simCapacityKw / (requiredCapacityKw || 1)) * 100))).toString(),
     annualSavings: simAnnualSavings,
     systemSize: simCapacityKw.toFixed(1),
     paybackPeriod: simPaybackYears.toFixed(1),
     co2Tonnes: (simCo2Kg / 1000).toFixed(1),
-  }), [simCapacityKw, simAnnualSavings, simPaybackYears, simCo2Kg]);
+  }), [simCapacityKw, requiredCapacityKw, simAnnualSavings, simPaybackYears, simCo2Kg]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -267,10 +296,10 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
                   <strong>{simPanelCount} Panels</strong> Monocrystalline
                 </span>
                 <span className="spec-item-badge">
-                  <strong>{simPanelCount * 20} sq ft</strong> Array Footprint
+                  <strong>{Math.round(simPanelCount * PANEL_AREA_SQFT)} sq ft</strong> Array Footprint
                 </span>
                 <span className="spec-item-badge">
-                  <strong>{simulatedArea} sq ft</strong> Usable Roof
+                  <strong>{simulatedArea} sq ft</strong> Roof ({usableSimArea} sq ft usable)
                 </span>
               </div>
               <div className="top-bar-status">
@@ -443,7 +472,11 @@ function HomePage({ token, user, onLogout, darkMode, toggleDarkMode }) {
                   <div className="sim-metric-card">
                     <span className="sim-kicker">RECOMMENDED CAPACITY</span>
                     <strong className="sim-hero-number">{simCapacityKw} <span className="sim-unit">kW</span></strong>
-                    <span className="sim-foot-note">~{simPanelCount} solar panels required</span>
+                    <span className="sim-foot-note">
+                      {isRoofConstrained
+                        ? `${simPanelCount} panels (Roof Limited)`
+                        : `~${simPanelCount} solar panels recommended`}
+                    </span>
                   </div>
 
                   <div className="sim-metric-card">

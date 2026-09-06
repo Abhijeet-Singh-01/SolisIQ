@@ -21,6 +21,7 @@ import {
   Maximize2,
   Clock,
   Award,
+  AlertCircle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -146,6 +147,11 @@ function Dashboard({ results }) {
     : (actualPanelCount * 20);
   const remainingRoofArea = userRoofArea > 0 ? Math.max(0, Math.round(userRoofArea - requiredArrayArea)) : null;
   const roofCoveragePercent = userRoofArea > 0 ? Math.min(100, Math.round((requiredArrayArea / userRoofArea) * 100)) : null;
+
+  const isRoofConstrained = Boolean(roi.is_roof_constrained);
+  const requiredCapacityKw = Number(roi.required_capacity_kw || recommended_capacity_kw);
+  const maxPhysicalCapacityKw = Number(roi.max_physical_capacity_kw || roi.roof_capacity_kw || recommended_capacity_kw);
+  const requiredPanels = Number(roi.required_panels || actualPanelCount);
 
   // Array containing exactly the number of panels from the backend
   const panelsArray = Array.from({ length: actualPanelCount }, (_, index) => ({
@@ -300,7 +306,8 @@ function Dashboard({ results }) {
               <span className="card-mono-kicker">ROOFTOP ARRAY MODEL</span>
               <h3 className="visualizer-title">Rooftop Panel Layout</h3>
               <p className="visualizer-desc">
-                Architectural layout rendering exactly {actualPanelCount} high-efficiency monocrystalline panels (~{panelWattage}W each) on your roof surface.
+                Rooftop layout based on your available roof area and the recommended system size.
+                {recommended_capacity_kw > 0 && actualPanelCount > 0 ? ` (${actualPanelCount} panels • ${recommended_capacity_kw} kW system${userRoofArea > 0 ? ` on ~${userRoofArea.toLocaleString('en-IN')} sq ft roof` : ''})` : ''}
               </p>
             </div>
             <div className="visualizer-head-pill">
@@ -310,6 +317,33 @@ function Dashboard({ results }) {
               </span>
             </div>
           </div>
+
+          {/* Roof Limitation Notice if demand exceeds physical rooftop capacity */}
+          {isRoofConstrained && (
+            <div className="roof-constraint-banner" role="alert">
+              <div className="constraint-badge-row">
+                <AlertCircle size={16} className="text-amber" />
+                <strong>Your rooftop area limits the recommended system size.</strong>
+              </div>
+              <p className="constraint-explanation">
+                Your electricity demand suggests a <strong>{`${requiredCapacityKw} kW`}</strong> system ({`${requiredPanels} panels`}), but your available rooftop physically limits installation to <strong>{`${maxPhysicalCapacityKw} kW`}</strong> ({`${actualPanelCount} panels`}).
+              </p>
+              <div className="constraint-metrics-row">
+                <div className="constraint-pill">
+                  <span className="constraint-label">Estimated requirement:</span>
+                  <strong>{`${requiredCapacityKw} kW`}</strong>
+                </div>
+                <div className="constraint-pill">
+                  <span className="constraint-label">Roof capacity:</span>
+                  <strong>{`${maxPhysicalCapacityKw} kW`}</strong>
+                </div>
+                <div className="constraint-pill highlight">
+                  <span className="constraint-label">Recommended installation:</span>
+                  <strong>{`${recommended_capacity_kw} kW`}</strong>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Dynamic Panel Grid */}
           <div className="rooftop-canvas-container">
@@ -591,7 +625,7 @@ function Dashboard({ results }) {
                 <div className="method-item">
                   <h4>2. System Sizing & Roof Constraints</h4>
                   <p>
-                    Calculates required capacity as (Monthly Units / 30) / 4.0 kWh/kW/day, and ensures the system safely fits within available roof area assuming 10 m² (107.6 sq ft) per kW of modern 400W panels.
+                    Calculates required solar capacity from electricity consumption and caps it by physical rooftop dimensions using a 70% usable roof factor (accounting for setbacks, walkways, maintenance access, and obstructions) with standard 400W monocrystalline modules (~21 sq ft per panel).
                   </p>
                 </div>
                 <div className="method-item">

@@ -1,5 +1,6 @@
 import os
 import csv
+import math
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from io import BytesIO
@@ -348,6 +349,14 @@ def get_local_weather_fallback():
 
 
 SYSTEM_COST_PER_KW = 60000
+
+# Centralized Solar Panel Physical Specifications (Modern 400W Monocrystalline PERC)
+PANEL_WATTAGE_W = 400
+PANEL_CAPACITY_KW = PANEL_WATTAGE_W / 1000.0  # 0.4 kW
+PANEL_WIDTH_FT = 3.72  # ~1.134 m (standard 54-cell/108-half-cell modern panel)
+PANEL_HEIGHT_FT = 5.65  # ~1.722 m
+PANEL_AREA_SQFT = round(PANEL_WIDTH_FT * PANEL_HEIGHT_FT, 2)  # 21.02 sq ft (~1.95 m²)
+USABLE_AREA_FACTOR = 0.70  # 70% usable rooftop after fire setbacks, walkways, maintenance access, obstructions, and geometry
 
 STATE_SUBSIDIES = {
     "Delhi": {"percent": 40, "scheme": "Delhi Rooftop Solar Subsidy"},
@@ -1016,31 +1025,33 @@ def calculate_roi():
     subsidy_info = get_state_subsidy(state)
     subsidy_percent = subsidy_info["percent"]
 
-    # Convert rooftop area from sq ft to square meters.
-    rooftop_area_m2 = rooftop_area * 0.0929
-
-    # Approximate solar output: 1 kW system produces about 4 kWh/day in this demo.
+    # 1. Energy consumption requirement (demand-driven)
     monthly_units_kwh = monthly_bill / tariff_rate
     daily_units_kwh = monthly_units_kwh / 30.0
+    # Solar generation benchmark: 1 kW system produces approx 4.0 kWh/day
     required_capacity_kw = daily_units_kwh / 4.0
+    required_panels = max(1, int(math.ceil(required_capacity_kw / PANEL_CAPACITY_KW)))
 
-    # Limit capacity based on available roof area.
-    roof_capacity_kw = rooftop_area_m2 / 10.0
-    installed_capacity_kw = min(required_capacity_kw, roof_capacity_kw)
-    installed_capacity_kw = max(installed_capacity_kw, 0.5)
+    # 2. Rooftop physical capacity limit (geometry & area-driven)
+    usable_roof_area_sqft = rooftop_area * USABLE_AREA_FACTOR
+    max_physical_panels = max(1, int(usable_roof_area_sqft // PANEL_AREA_SQFT))
+    max_physical_capacity_kw = round(max_physical_panels * PANEL_CAPACITY_KW, 2)
 
-    panel_size_kw = 0.4
-    number_of_panels = int(-(-required_capacity_kw // panel_size_kw))
-    roof_area_required_sq_m = required_capacity_kw * 10.0
-    roof_area_required_sq_ft = roof_area_required_sq_m * 10.7639
+    # 3. Authoritative recommended system: NEVER exceed physical rooftop capacity
+    is_roof_constrained = required_panels > max_physical_panels
+    recommended_panel_count = min(required_panels, max_physical_panels)
+    recommended_capacity_kw = round(recommended_panel_count * PANEL_CAPACITY_KW, 2)
 
-    # Estimate monthly savings from solar generation.
-    monthly_generation_kwh = installed_capacity_kw * 120.0
-    estimated_monthly_savings = monthly_generation_kwh * tariff_rate
+    # 4. Required array footprint
+    roof_area_required_sq_ft = round(recommended_panel_count * PANEL_AREA_SQFT, 1)
 
-    # Estimate payback period using system cost.
-    system_cost = installed_capacity_kw * 60000.0
+    # 5. Financial & generation metrics based strictly on authoritative recommended capacity
+    monthly_generation_kwh = recommended_capacity_kw * 120.0  # 30 days * 4.0 kWh/kW/day
+    estimated_monthly_savings = min(monthly_bill, monthly_generation_kwh * tariff_rate)
+
+    system_cost = recommended_capacity_kw * SYSTEM_COST_PER_KW
     annual_savings = estimated_monthly_savings * 12.0
+    annual_generation = monthly_generation_kwh * 12.0
     lifetime_savings_25_years = annual_savings * 25.0
     roi_percent = (
         ((lifetime_savings_25_years - system_cost) / system_cost * 100.0)
@@ -1048,6 +1059,18 @@ def calculate_roi():
         else 0.0
     )
     payback_years = system_cost / annual_savings if annual_savings > 0 else 0.0
+
+    green_offset_percent = (
+        min(100.0, round((recommended_capacity_kw / required_capacity_kw) * 100.0, 1))
+        if required_capacity_kw > 0
+        else 100.0
+    )
+
+    constraint_message = (
+        "Your rooftop area limits the recommended system size."
+        if is_roof_constrained
+        else ""
+    )
 
     city = str(data.get("city", "")).strip() or "Unknown"
     try:
@@ -1084,18 +1107,30 @@ def calculate_roi():
 
     return jsonify(
         {
-            "system_size": round(required_capacity_kw, 2),
-            "recommended_capacity_kw": round(required_capacity_kw, 2),
-            "required_panel_capacity_kw": round(installed_capacity_kw, 2),
+            "system_size": recommended_capacity_kw,
+            "recommended_capacity_kw": recommended_capacity_kw,
+            "required_panel_capacity_kw": recommended_capacity_kw,
+            "required_capacity_kw": round(required_capacity_kw, 2),
+            "max_physical_capacity_kw": max_physical_capacity_kw,
+            "roof_capacity_kw": max_physical_capacity_kw,
+            "panel_count": recommended_panel_count,
+            "number_of_panels": recommended_panel_count,
+            "max_physical_panels": max_physical_panels,
+            "required_panels": required_panels,
+            "panel_wattage": PANEL_WATTAGE_W,
+            "panel_area_sqft": PANEL_AREA_SQFT,
+            "usable_roof_area_sqft": round(usable_roof_area_sqft, 1),
+            "usable_area_factor": USABLE_AREA_FACTOR,
+            "is_roof_constrained": is_roof_constrained,
+            "constraint_message": constraint_message,
+            "green_offset_percent": green_offset_percent,
             "system_cost": round(system_cost, 2),
             "monthly_units_kwh": round(monthly_units_kwh, 2),
             "annual_savings": round(annual_savings, 2),
-            "annual_generation": round(installed_capacity_kw * 120.0 * 12.0, 2),
+            "annual_generation": round(annual_generation, 2),
             "lifetime_savings_25_years": round(lifetime_savings_25_years, 2),
             "roi_percent": round(roi_percent, 2),
-            "panel_count": number_of_panels,
-            "number_of_panels": number_of_panels,
-            "roof_area_required_sq_ft": round(roof_area_required_sq_ft, 1),
+            "roof_area_required_sq_ft": roof_area_required_sq_ft,
             "estimated_monthly_savings": round(estimated_monthly_savings, 2),
             "payback_period": round(payback_years, 2),
             "payback_period_years": round(payback_years, 2),

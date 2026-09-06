@@ -155,4 +155,60 @@ describe('SolisIQ Premium Redesign Suite', () => {
     expect(html).toContain('#27');
     expect(html).not.toContain('#28');
   });
+
+  test('Dashboard displays roof limitation notice and capped panel count when demand exceeds roof physical limits (600 sq ft + ₹34,979)', () => {
+    const roofConstrainedResults = {
+      prediction: { predicted_energy_output_kwh: 5.2 },
+      roi: {
+        recommended_capacity_kw: 7.6,
+        required_capacity_kw: 41.64,
+        max_physical_capacity_kw: 7.6,
+        roof_capacity_kw: 7.6,
+        number_of_panels: 19,
+        panel_count: 19,
+        required_panels: 105,
+        max_physical_panels: 19,
+        panel_wattage: 400,
+        is_roof_constrained: true,
+        constraint_message: 'Your rooftop area limits the recommended system size.',
+        roof_area_required_sq_ft: 399.4,
+        annual_savings: 76608,
+        lifetime_savings_25_years: 1915200,
+        roi_percent: 320,
+        estimated_monthly_savings: 6384,
+        payback_period_years: 5.95,
+        monthly_units_kwh: 4997,
+      },
+      carbon: {
+        co2_saved_kg: 8974,
+        tree_equivalent: 427,
+      },
+      userInput: {
+        location: 'New Delhi',
+        city: 'New Delhi',
+        bill: 34979,
+        monthlyBill: 34979,
+        area: 600,
+        rooftopArea: 600,
+        state: 'Delhi',
+      },
+      seasonalBreakdown: [],
+    };
+
+    const html = ReactDOMServer.renderToString(<Dashboard results={roofConstrainedResults} />);
+    // Verify limitation banner is rendered
+    expect(html).toContain('Your rooftop area limits the recommended system size.');
+    expect(html).toContain('Estimated requirement:');
+    expect(html).toContain('41.64 kW');
+    expect(html).toContain('Roof capacity:');
+    expect(html).toContain('7.6 kW');
+    expect(html).toContain('Recommended installation:');
+
+    // Verify panel count is physically capped at 19, NOT 105
+    expect(html).toContain('19 Panels');
+    expect(html).toContain('<strong>19</strong> panels');
+    expect(html).toContain('#19');
+    expect(html).not.toContain('#20');
+    expect(html).not.toContain('105 Panels');
+  });
 });
