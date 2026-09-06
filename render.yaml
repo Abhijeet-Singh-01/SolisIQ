@@ -8,11 +8,11 @@ services:
     # Build command - install dependencies from backend/requirements.txt
     buildCommand: pip install -r backend/requirements.txt
     
-    # Start command - use gunicorn from repository root, chdir to backend
-    startCommand: gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app
+    # Start command - use gunicorn with Uvicorn worker from repository root, chdir to backend
+    startCommand: gunicorn --chdir backend --bind 0.0.0.0:$PORT -k uvicorn.workers.UvicornWorker app:app
     
     # Health check
-    healthCheckPath: /
+    healthCheckPath: /health
     
     # Environment variables - set in Render dashboard
     # These are REQUIRED to be set in Render:
