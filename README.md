@@ -190,7 +190,6 @@ The current implementation uses a Random Forest regressor trained on historical 
 ## 👤 Author
 
 **Abhijeet Singh**
-Project — AKTU
 abhijeetsingh01122006@gmail.com
 
 ---
