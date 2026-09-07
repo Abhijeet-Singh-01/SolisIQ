@@ -4,7 +4,7 @@
 
 ![Status](https://img.shields.io/badge/status-active-success)
 ![React](https://img.shields.io/badge/frontend-React-61DAFB?logo=react&logoColor=black)
-![Flask](https://img.shields.io/badge/backend-Flask-black?logo=flask)
+![Flask](https://img.shields.io/badge/backend-FastAPI-black?logo=flask)
 ![MySQL](https://img.shields.io/badge/database-MySQL-4479A1?logo=mysql&logoColor=white)
 ![Python](https://img.shields.io/badge/ML-scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
 
